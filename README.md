@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TUT RET - Sistema de Formularios para Reaseguradora
 
-## Getting Started
+Aplicación web para la gestión de formularios de la reaseguradora TUT RET.
 
-First, run the development server:
+## 🚀 Tecnologías
+
+- **Next.js 16** - Framework de React
+- **TypeScript** - Tipado estático
+- **Tailwind CSS** - Estilos
+- **React 19** - Biblioteca de interfaz de usuario
+
+## 📋 Descripción
+
+Este proyecto está enfocado en la creación y gestión de formularios para procesos de reaseguro. La aplicación permitirá:
+
+- Creación de formularios dinámicos
+- Validación de datos
+- Gestión de información de reaseguro
+- Interfaz intuitiva y responsiva
+
+## 🛠️ Instalación
+
+Instalar dependencias:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 💻 Desarrollo
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Ejecutar el servidor de desarrollo:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+pnpm dev
+```
 
-## Learn More
+Abrir [http://localhost:3000](http://localhost:3000) en el navegador.
 
-To learn more about Next.js, take a look at the following resources:
+## 📦 Construcción
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Para construir la aplicación para producción:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+pnpm build
+```
 
-## Deploy on Vercel
+Para ejecutar la versión de producción:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+pnpm start
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📝 Estructura del Proyecto
+
+```
+tut-ret/
+├── app/              # Páginas y componentes de la aplicación
+├── public/           # Archivos estáticos
+└── ...config files   # Configuración del proyecto
+```
+
+## 🔧 Configuración
+
+El proyecto utiliza las siguientes configuraciones:
+
+- `next.config.ts` - Configuración de Next.js
+- `tsconfig.json` - Configuración de TypeScript
+- `tailwind.config` - Configuración de Tailwind CSS
+- `eslint.config.mjs` - Reglas de linting
+
+## 📄 Licencia
+
+Privado - TUT RET Reaseguradora
