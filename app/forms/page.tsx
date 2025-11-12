@@ -3,6 +3,16 @@
 import { useState } from "react";
 import CotizacionForm from "../components/forms/CotizacionForm";
 import CoberturaForm from "../components/forms/CoberturaForm";
+import CoberturasAdicionalesForm from "../components/forms/CoberturasAdicionalesForm";
+import VigenciaForm from "../components/forms/VigenciaForm";
+import LimitesForm from "../components/forms/LimitesForm";
+import DeduciblesForm from "../components/forms/DeduciblesForm";
+import ImpuestosForm from "../components/forms/ImpuestosForm";
+import CondicionesForm from "../components/forms/CondicionesForm";
+import CondicionesEspecialesForm from "../components/forms/CondicionesEspecialesForm";
+import TerminosGeneralesForm from "../components/forms/TerminosGeneralesForm";
+import TerminosEspecificosForm from "../components/forms/TerminosEspecificosForm";
+import ClausulasForm from "../components/forms/ClausulasForm";
 
 type Tab = 
   | "cotizacion"
@@ -14,7 +24,7 @@ type Tab =
   | "impuestos"
   | "condiciones"
   | "condiciones-especiales"
-  | "terminos-grales"
+  | "terminos-generales"
   | "terminos-especificos"
   | "clausulas";
 
@@ -31,7 +41,7 @@ export default function FormsPage() {
     { id: "impuestos", label: "Impuestos" },
     { id: "condiciones", label: "Condiciones" },
     { id: "condiciones-especiales", label: "Condiciones Especiales" },
-    { id: "terminos-grales", label: "Términos Grales" },
+    { id: "terminos-generales", label: "Términos Generales" },
     { id: "terminos-especificos", label: "Términos Específicos" },
     { id: "clausulas", label: "Cláusulas" },
   ];
@@ -93,7 +103,17 @@ export default function FormsPage() {
         <div className="mb-6">
           {activeTab === "cotizacion" && <CotizacionForm />}
           {activeTab === "cobertura" && <CoberturaForm />}
-          {activeTab !== "cotizacion" && activeTab !== "cobertura" && (
+          {activeTab === "coberturas-adicionales" && <CoberturasAdicionalesForm />}
+          {activeTab === "vigencia" && <VigenciaForm />}
+          {activeTab === "limites" && <LimitesForm />}
+          {activeTab === "deducibles" && <DeduciblesForm />}
+          {activeTab === "impuestos" && <ImpuestosForm />}
+          {activeTab === "condiciones" && <CondicionesForm />}
+          {activeTab === "condiciones-especiales" && <CondicionesEspecialesForm />}
+          {activeTab === "terminos-generales" && <TerminosGeneralesForm />}
+          {activeTab === "terminos-especificos" && <TerminosEspecificosForm />}
+          {activeTab === "clausulas" && <ClausulasForm />}
+          {activeTab !== "cotizacion" && activeTab !== "cobertura" && activeTab !== "coberturas-adicionales" && activeTab !== "vigencia" && activeTab !== "limites" && activeTab !== "deducibles" && activeTab !== "impuestos" && activeTab !== "condiciones" && activeTab !== "condiciones-especiales" && activeTab !== "terminos-generales" && activeTab !== "terminos-especificos" && activeTab !== "clausulas" && (
             <div className="min-h-[500px] rounded-lg border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
               <div className="flex h-full items-center justify-center">
                 <div className="text-center">
