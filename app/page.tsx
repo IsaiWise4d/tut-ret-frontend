@@ -11,7 +11,7 @@ export default function Home() {
           </div>
           
           <h1 className="mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-5xl font-bold text-transparent sm:text-6xl lg:text-7xl">
-            Bienvenido a Tut-Ret
+            Bienvenido a TUT-RE
           </h1>
           
           <p className="mx-auto mb-12 max-w-2xl text-lg text-zinc-600 dark:text-zinc-400 sm:text-xl">

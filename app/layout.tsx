@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Tut-Ret - Soluciones Modernas",
+  title: "TUT-RE - Soluciones Modernas",
   description: "Simplificando procesos con tecnología de vanguardia",
 };
 

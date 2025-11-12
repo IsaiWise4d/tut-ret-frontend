@@ -11,7 +11,7 @@ export default function Navbar() {
               <span className="text-xl font-bold text-white">TR</span>
             </div>
             <span className="text-xl font-bold text-zinc-900 dark:text-white">
-              Tut-Ret
+              TUT-RE
             </span>
           </Link>
 

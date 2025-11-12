@@ -1,6 +1,6 @@
-# TUT RET - Sistema de Formularios para Reaseguradora
+# TUT-RE - Sistema de Formularios para Reaseguradora
 
-Aplicación web para la gestión de formularios de la reaseguradora TUT RET.
+Aplicación web para la gestión de formularios de la reaseguradora TUT-RE.
 
 ## 🚀 Tecnologías
 
@@ -70,4 +70,4 @@ El proyecto utiliza las siguientes configuraciones:
 
 ## 📄 Licencia
 
-Privado - TUT RET Reaseguradora
+Privado - TUT-RE Reaseguradora
