@@ -112,7 +112,7 @@ export default function VigenciaForm() {
   const [reservaPrimas, setReservaPrimas] = useState("20");
   const [reservaPrimasPorc, setReservaPrimasPorc] = useState("");
   const [reservaDias, setReservaDias] = useState("60");
-  const [reservaVigencia, setReservaVigencia] = useState("02-Oct-1899");
+  const [reservaVigencia, setReservaVigencia] = useState<Date | null>(null);
   const [reservaTexto, setReservaTexto] = useState("a ser liberadas y pagadas (N) días después de finalizada la vigencia del presente contrato de reaseguro.");
 
   // Estados para Elección del Derecho Aplicable y Jurisdicción
@@ -531,13 +531,34 @@ export default function VigenciaForm() {
               <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 Vigencia
               </label>
-              <input
-                type="text"
-                value={reservaVigencia}
-                onChange={(e) => setReservaVigencia(e.target.value)}
-                placeholder="02-Oct-1899"
-                className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
-              />
+              <div className="datepicker-wrapper relative">
+                <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3">
+                  <svg
+                    className="h-5 w-5 text-zinc-400 dark:text-zinc-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+                <DatePicker
+                  selected={reservaVigencia}
+                  onChange={(date: Date | null) => setReservaVigencia(date)}
+                  dateFormat="dd/MM/yyyy"
+                  placeholderText="Seleccionar fecha"
+                  className="w-full rounded-lg border border-zinc-300 bg-white py-2.5 pl-10 pr-4 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-400"
+                  wrapperClassName="w-full"
+                  showMonthDropdown
+                  showYearDropdown
+                  dropdownMode="select"
+                />
+              </div>
             </div>
           </div>
 
