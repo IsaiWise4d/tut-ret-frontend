@@ -35,6 +35,10 @@ export default function CotizacionForm() {
     { id: 1, nombre: "", nit: "", porcentaje: "" },
   ]);
 
+  // IDs en proceso de eliminación (para animación)
+  const [removingReaseguradores, setRemovingReaseguradores] = useState<number[]>([]);
+  const [removingReasegurados, setRemovingReasegurados] = useState<number[]>([]);
+
   const [coverholder, setCoverholder] = useState("");
   const [asegurado, setAsegurado] = useState("");
   const [aseguradoNit, setAseguradoNit] = useState("");
@@ -60,7 +64,13 @@ export default function CotizacionForm() {
 
   const removeReasegurador = (id: number) => {
     if (reaseguradores.length > 1) {
-      setReaseguradores(reaseguradores.filter((r) => r.id !== id));
+      // marcar como en eliminación para aplicar la animación
+      setRemovingReaseguradores((prev) => [...prev, id]);
+      // esperar al final de la animación antes de eliminar del estado
+      setTimeout(() => {
+        setReaseguradores((prev) => prev.filter((r) => r.id !== id));
+        setRemovingReaseguradores((prev) => prev.filter((v) => v !== id));
+      }, 200);
     }
   };
 
@@ -79,7 +89,12 @@ export default function CotizacionForm() {
 
   const removeReasegurado = (id: number) => {
     if (reasegurados.length > 1) {
-      setReasegurados(reasegurados.filter((r) => r.id !== id));
+      // marcar como en eliminación para aplicar la animación
+      setRemovingReasegurados((prev) => [...prev, id]);
+      setTimeout(() => {
+        setReasegurados((prev) => prev.filter((r) => r.id !== id));
+        setRemovingReasegurados((prev) => prev.filter((v) => v !== id));
+      }, 200);
     }
   };
 
@@ -92,11 +107,11 @@ export default function CotizacionForm() {
   return (
     <div className="space-y-6">
       {/* Información Principal */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+  <div className="rounded-lg border border-zinc-200 bg-white p-6 animate-fade-up will-change-transform">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
           {/* Correo */}
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-2 block text-sm font-semibold text-zinc-700">
               Correo
             </label>
             <input
@@ -105,13 +120,13 @@ export default function CotizacionForm() {
               value={formData.correo}
               onChange={handleInputChange}
               placeholder="megavas@invise4d.co"
-              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           {/* Cotización */}
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-2 block text-sm font-semibold text-zinc-700">
               Cotización
             </label>
             <input
@@ -120,13 +135,13 @@ export default function CotizacionForm() {
               value={formData.cotizacion}
               onChange={handleInputChange}
               placeholder="2025_0008"
-              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           {/* Negocio */}
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-2 block text-sm font-semibold text-zinc-700">
               Negocio
             </label>
             <input
@@ -135,20 +150,20 @@ export default function CotizacionForm() {
               value={formData.negocio}
               onChange={handleInputChange}
               placeholder="Prueba1"
-              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           {/* Estado */}
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-2 block text-sm font-semibold text-zinc-700">
               Estado
             </label>
             <select
               name="estado"
               value={formData.estado}
               onChange={handleInputChange}
-              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="COTIZACIÓN">COTIZACIÓN</option>
               <option value="APROBADO">APROBADO</option>
@@ -159,8 +174,8 @@ export default function CotizacionForm() {
       </div>
 
       {/* Tipo */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+  <div className="rounded-lg border border-zinc-200 bg-white p-6 animate-fade-up will-change-transform">
+        <label className="mb-2 block text-sm font-semibold text-zinc-700">
           Tipo
         </label>
         <textarea
@@ -169,25 +184,25 @@ export default function CotizacionForm() {
           onChange={handleInputChange}
           rows={3}
           placeholder="Reaseguro Facultativo de Responsabilidad Civil Profesional Médica, en forma Proporcional, cubriendo las actividades del asegurado como propietario y operador de las instituciones médicas nombradas como asegurados."
-          className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+          className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
       {/* Broker */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <h3 className="mb-4 text-sm font-semibold text-zinc-900 dark:text-white">
+  <div className="rounded-lg border border-zinc-200 bg-white p-6 animate-fade-up will-change-transform">
+        <h3 className="mb-4 text-sm font-semibold text-zinc-900">
           Broker
         </h3>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-2 block text-sm font-medium text-zinc-700">
               Broker de Reaseguro
             </label>
             <select
               name="brokerReaseguro"
               value={formData.brokerReaseguro}
               onChange={handleInputChange}
-              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Seleccione...</option>
               <option value="broker1">Broker 1</option>
@@ -195,7 +210,7 @@ export default function CotizacionForm() {
             </select>
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-2 block text-sm font-medium text-zinc-700">
               Nit
             </label>
             <input
@@ -203,16 +218,16 @@ export default function CotizacionForm() {
               name="brokerNit"
               value={formData.brokerNit}
               onChange={handleInputChange}
-              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
       </div>
 
-      {/* Reasegurador */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+  {/* Reasegurador */}
+  <div className="rounded-lg border border-zinc-200 bg-white p-6 animate-fade-up will-change-transform">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">
+          <h3 className="text-sm font-semibold text-zinc-900">
             Reasegurador
           </h3>
           <button
@@ -241,27 +256,31 @@ export default function CotizacionForm() {
           {reaseguradores.map((reasegurador, index) => (
             <div
               key={reasegurador.id}
-              className="grid grid-cols-1 gap-4 rounded-lg border border-zinc-200 p-4 dark:border-zinc-700 md:grid-cols-12"
+              className={
+                `grid grid-cols-1 gap-4 rounded-lg border border-zinc-200 p-4 md:grid-cols-12 will-change-transform ${
+                  removingReaseguradores.includes(reasegurador.id) ? "animate-pop-out" : "animate-pop"
+                }`
+              }
             >
               <div className="md:col-span-1">
-                <label className="mb-2 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                <label className="mb-2 block text-xs font-medium text-zinc-700">
                   #
                 </label>
                 <input
                   type="text"
                   value={index + 1}
                   disabled
-                  className="w-full rounded-lg border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                  className="w-full rounded-lg border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-900"
                 />
               </div>
               <div className="md:col-span-4">
-                <label className="mb-2 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                <label className="mb-2 block text-xs font-medium text-zinc-700">
                   Nombre
                 </label>
                 <select
                   value={reasegurador.nombre}
                   onChange={(e) => updateReasegurador(reasegurador.id, "nombre", e.target.value)}
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Seleccione...</option>
                   <option value="reasegurador1">Reasegurador 1</option>
@@ -269,25 +288,25 @@ export default function CotizacionForm() {
                 </select>
               </div>
               <div className="md:col-span-3">
-                <label className="mb-2 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                <label className="mb-2 block text-xs font-medium text-zinc-700">
                   Nit
                 </label>
                 <input
                   type="text"
                   value={reasegurador.nit}
                   onChange={(e) => updateReasegurador(reasegurador.id, "nit", e.target.value)}
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="mb-2 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                <label className="mb-2 block text-xs font-medium text-zinc-700">
                   %
                 </label>
                 <input
                   type="text"
                   value={reasegurador.porcentaje}
                   onChange={(e) => updateReasegurador(reasegurador.id, "porcentaje", e.target.value)}
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div className="flex items-end md:col-span-2">
@@ -295,7 +314,7 @@ export default function CotizacionForm() {
                   type="button"
                   onClick={() => removeReasegurador(reasegurador.id)}
                   disabled={reaseguradores.length === 1}
-                  className="w-full rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-700 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                  className="w-full rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Eliminar
                 </button>
@@ -306,33 +325,33 @@ export default function CotizacionForm() {
 
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-2 block text-sm font-medium text-zinc-700">
               Total %
             </label>
             <input
               type="text"
               value={totalReaseguradores}
               onChange={(e) => setTotalReaseguradores(e.target.value)}
-              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-2 block text-sm font-medium text-zinc-700">
               Nro Reaseguradores
             </label>
             <input
               type="text"
               value={nroReaseguradores}
               onChange={(e) => setNroReaseguradores(e.target.value)}
-              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
       </div>
 
       {/* Coverholder */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+      <div className="rounded-lg border border-zinc-200 bg-white p-6">
+        <label className="mb-2 block text-sm font-medium text-zinc-700">
           Coverholder
         </label>
         <input
@@ -340,14 +359,14 @@ export default function CotizacionForm() {
           value={coverholder}
           onChange={(e) => setCoverholder(e.target.value)}
           placeholder="The Underwriting Team"
-          className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+            className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
-      {/* Reasegurado */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+  {/* Reasegurado */}
+  <div className="rounded-lg border border-zinc-200 bg-white p-6 animate-fade-up will-change-transform">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">
+          <h3 className="text-sm font-semibold text-zinc-900">
             Reasegurado
           </h3>
           <button
@@ -376,27 +395,31 @@ export default function CotizacionForm() {
           {reasegurados.map((reasegurado, index) => (
             <div
               key={reasegurado.id}
-              className="grid grid-cols-1 gap-4 rounded-lg border border-zinc-200 p-4 dark:border-zinc-700 md:grid-cols-12"
+              className={
+                `grid grid-cols-1 gap-4 rounded-lg border border-zinc-200 p-4 md:grid-cols-12 will-change-transform ${
+                  removingReasegurados.includes(reasegurado.id) ? "animate-pop-out" : "animate-pop"
+                }`
+              }
             >
               <div className="md:col-span-1">
-                <label className="mb-2 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                <label className="mb-2 block text-xs font-medium text-zinc-700">
                   #
                 </label>
                 <input
                   type="text"
                   value={index + 1}
                   disabled
-                  className="w-full rounded-lg border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                  className="w-full rounded-lg border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-900"
                 />
               </div>
               <div className="md:col-span-4">
-                <label className="mb-2 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                <label className="mb-2 block text-xs font-medium text-zinc-700">
                   Nombre
                 </label>
                 <select
                   value={reasegurado.nombre}
                   onChange={(e) => updateReasegurado(reasegurado.id, "nombre", e.target.value)}
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Seleccione...</option>
                   <option value="reasegurado1">Reasegurado 1</option>
@@ -404,25 +427,25 @@ export default function CotizacionForm() {
                 </select>
               </div>
               <div className="md:col-span-3">
-                <label className="mb-2 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                <label className="mb-2 block text-xs font-medium text-zinc-700">
                   Nit
                 </label>
                 <input
                   type="text"
                   value={reasegurado.nit}
                   onChange={(e) => updateReasegurado(reasegurado.id, "nit", e.target.value)}
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="mb-2 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                <label className="mb-2 block text-xs font-medium text-zinc-700">
                   %
                 </label>
                 <input
                   type="text"
                   value={reasegurado.porcentaje}
                   onChange={(e) => updateReasegurado(reasegurado.id, "porcentaje", e.target.value)}
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div className="flex items-end md:col-span-2">
@@ -430,7 +453,7 @@ export default function CotizacionForm() {
                   type="button"
                   onClick={() => removeReasegurado(reasegurado.id)}
                   disabled={reasegurados.length === 1}
-                  className="w-full rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-700 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                  className="w-full rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Eliminar
                 </button>
@@ -441,44 +464,44 @@ export default function CotizacionForm() {
 
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-2 block text-sm font-medium text-zinc-700">
               Total %
             </label>
             <input
               type="text"
               value={totalReasegurados}
               onChange={(e) => setTotalReasegurados(e.target.value)}
-              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-2 block text-sm font-medium text-zinc-700">
               Nro Reasegurados
             </label>
             <input
               type="text"
               value={nroReasegurados}
               onChange={(e) => setNroReasegurados(e.target.value)}
-              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
       </div>
 
-      {/* Asegurado */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <h3 className="mb-4 text-sm font-semibold text-zinc-900 dark:text-white">
+  {/* Asegurado */}
+  <div className="rounded-lg border border-zinc-200 bg-white p-6 animate-fade-up will-change-transform">
+        <h3 className="mb-4 text-sm font-semibold text-zinc-900">
           Asegurado
         </h3>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="md:col-span-2">
-            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-2 block text-sm font-medium text-zinc-700">
               Asegurado
             </label>
             <select
               value={asegurado}
               onChange={(e) => setAsegurado(e.target.value)}
-              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Seleccione...</option>
               <option value="asegurado1">Asegurado 1</option>
@@ -486,27 +509,27 @@ export default function CotizacionForm() {
             </select>
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-2 block text-sm font-medium text-zinc-700">
               Nit
             </label>
             <input
               type="text"
               value={aseguradoNit}
               onChange={(e) => setAseguradoNit(e.target.value)}
-              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
         <div className="mt-4 flex gap-4">
           <button
             type="button"
-            className="rounded-lg border-2 border-blue-600 bg-white px-6 py-2 text-sm font-semibold text-blue-600 transition-all hover:bg-blue-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:border-blue-500 dark:bg-zinc-900 dark:text-blue-400 dark:hover:bg-blue-600 dark:hover:text-white"
+            className="rounded-lg border-2 border-blue-600 bg-white px-6 py-2 text-sm font-semibold text-blue-600 transition-all hover:bg-blue-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             Crear Asegurado...
           </button>
           <button
             type="button"
-            className="rounded-lg border-2 border-blue-600 bg-white px-6 py-2 text-sm font-semibold text-blue-600 transition-all hover:bg-blue-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:border-blue-500 dark:bg-zinc-900 dark:text-blue-400 dark:hover:bg-blue-600 dark:hover:text-white"
+            className="rounded-lg border-2 border-blue-600 bg-white px-6 py-2 text-sm font-semibold text-blue-600 transition-all hover:bg-blue-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             Riesgos del Asegurado...
           </button>

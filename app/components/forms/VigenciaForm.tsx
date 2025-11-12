@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ReactDOM from "react-dom";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import "./datepicker-custom.css";
@@ -121,11 +122,14 @@ export default function VigenciaForm() {
   // Estados para Sede Arbitraje
   const [sedeArbitraje, setSedeArbitraje] = useState("");
 
+  // Helper para renderizar el popper en un portal (evita que quede recortado por contenedores padre)
+  const popperContainer = (props: any) => ReactDOM.createPortal(props.children, document.body);
+
   return (
     <div className="space-y-6">
       {/* Sección Vigencia */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <h3 className="mb-4 text-sm font-semibold text-zinc-900 dark:text-white">
+  <div className="rounded-lg border border-zinc-200 bg-white p-6 animate-fade-up will-change-transform">
+        <h3 className="mb-4 text-sm font-semibold text-zinc-900">
           Vigencia
         </h3>
 
@@ -134,15 +138,15 @@ export default function VigenciaForm() {
           <div className="space-y-4">
             {/* Desde */}
             <div>
-              <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <label className="mb-2 block text-sm font-medium text-zinc-700">
                 Desde
               </label>
               <div className="space-y-2">
                 {/* Date Picker */}
                 <div className="datepicker-wrapper relative">
                   <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3">
-                    <svg
-                      className="h-5 w-5 text-zinc-400 dark:text-zinc-500"
+              <svg
+                className="h-5 w-5 text-zinc-400"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -160,22 +164,24 @@ export default function VigenciaForm() {
                     onChange={handleDesdeChange}
                     dateFormat="dd/MM/yyyy"
                     placeholderText="Seleccionar fecha"
-                    className="w-full rounded-lg border border-zinc-300 bg-white py-2.5 pl-10 pr-4 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-400"
+                    className="w-full rounded-lg border border-zinc-300 bg-white py-2.5 pl-10 pr-4 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     wrapperClassName="w-full"
                     showMonthDropdown
                     showYearDropdown
                     dropdownMode="select"
+                    popperPlacement="top-start"
+                    popperContainer={popperContainer}
                   />
                 </div>
                 {/* Time Picker */}
                 <div>
-                  <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                  <label className="block text-xs font-medium text-zinc-600">
                     Hora
                   </label>
                   <div className="datepicker-wrapper relative mt-1">
                     <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3">
                       <svg
-                        className="h-5 w-5 text-zinc-400 dark:text-zinc-500"
+                        className="h-5 w-5 text-zinc-400"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -197,8 +203,10 @@ export default function VigenciaForm() {
                       timeCaption="Hora"
                       dateFormat="h aa"
                       placeholderText="Seleccionar hora"
-                      className="w-full rounded-lg border border-zinc-300 bg-white py-2.5 pl-10 pr-4 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-400"
+                      className="w-full rounded-lg border border-zinc-300 bg-white py-2.5 pl-10 pr-4 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       wrapperClassName="w-full"
+                      popperPlacement="top-start"
+                      popperContainer={popperContainer}
                     />
                   </div>
                 </div>
@@ -207,7 +215,7 @@ export default function VigenciaForm() {
 
             {/* Hasta */}
             <div>
-              <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <label className="mb-2 block text-sm font-medium text-zinc-700">
                 Hasta
               </label>
               <div className="space-y-2">
@@ -215,7 +223,7 @@ export default function VigenciaForm() {
                 <div className="datepicker-wrapper relative">
                   <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3">
                     <svg
-                      className="h-5 w-5 text-zinc-400 dark:text-zinc-500"
+                      className="h-5 w-5 text-zinc-400"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -233,23 +241,25 @@ export default function VigenciaForm() {
                     onChange={handleHastaChange}
                     dateFormat="dd/MM/yyyy"
                     placeholderText="Seleccionar fecha"
-                    className="w-full rounded-lg border border-zinc-300 bg-white py-2.5 pl-10 pr-4 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-400"
+                    className="w-full rounded-lg border border-zinc-300 bg-white py-2.5 pl-10 pr-4 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     wrapperClassName="w-full"
                     showMonthDropdown
                     showYearDropdown
                     dropdownMode="select"
                     minDate={desdeDate || undefined}
+                    popperPlacement="top-start"
+                    popperContainer={popperContainer}
                   />
                 </div>
                 {/* Time Picker */}
                 <div>
-                  <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                  <label className="block text-xs font-medium text-zinc-600">
                     Hora
                   </label>
                   <div className="datepicker-wrapper relative mt-1">
                     <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3">
                       <svg
-                        className="h-5 w-5 text-zinc-400 dark:text-zinc-500"
+                        className="h-5 w-5 text-zinc-400"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -271,8 +281,10 @@ export default function VigenciaForm() {
                       timeCaption="Hora"
                       dateFormat="h aa"
                       placeholderText="Seleccionar hora"
-                      className="w-full rounded-lg border border-zinc-300 bg-white py-2.5 pl-10 pr-4 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-400"
+                      className="w-full rounded-lg border border-zinc-300 bg-white py-2.5 pl-10 pr-4 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       wrapperClassName="w-full"
+                      popperPlacement="top-start"
+                      popperContainer={popperContainer}
                     />
                   </div>
                 </div>
@@ -281,7 +293,7 @@ export default function VigenciaForm() {
 
             {/* Días */}
             <div>
-              <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <label className="mb-2 block text-sm font-medium text-zinc-700">
                 Días
               </label>
               <input
@@ -289,10 +301,10 @@ export default function VigenciaForm() {
                 value={dias}
                 onChange={handleDiasChange}
                 placeholder="Ingrese días o seleccione fechas"
-                className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               {dias && (
-                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                <p className="mt-1 text-xs text-zinc-500">
                   {dias} {parseInt(dias) === 1 ? 'día' : 'días'} de vigencia
                 </p>
               )}
@@ -301,7 +313,7 @@ export default function VigenciaForm() {
 
           {/* Columna Derecha - Vigencia Texto */}
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-2 block text-sm font-medium text-zinc-700">
               Vigencia
             </label>
             <textarea
@@ -309,21 +321,21 @@ export default function VigenciaForm() {
               onChange={(e) => setVigenciaTexto(e.target.value)}
               rows={8}
               placeholder="Renovable automáticamente 60 días antes de vencimiento."
-              className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+              className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
       </div>
 
       {/* Sección Periodo de Prórroga */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <h3 className="mb-4 text-sm font-semibold text-zinc-900 dark:text-white">
+  <div className="rounded-lg border border-zinc-200 bg-white p-6 animate-fade-up will-change-transform">
+        <h3 className="mb-4 text-sm font-semibold text-zinc-900">
           Periodo de Prórroga
         </h3>
 
         <div className="space-y-4">
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-2 block text-sm font-medium text-zinc-700">
               Periodo de Prórroga
             </label>
             <input
@@ -331,39 +343,39 @@ export default function VigenciaForm() {
               value={prorrogaDias}
               onChange={(e) => setProrrogaDias(e.target.value)}
               placeholder="Días"
-              className="w-32 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+              className="w-32 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-2 block text-sm font-medium text-zinc-700">
               Periodo de Prórroga para denuncia de reclamos
             </label>
             <textarea
               value={prorrogaDenunciaTexto}
               onChange={(e) => setProrrogaDenunciaTexto(e.target.value)}
               rows={3}
-              className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+              className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
       </div>
 
       {/* Sección Límites Territoriales */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <h3 className="mb-4 text-sm font-semibold text-zinc-900 dark:text-white">
+  <div className="rounded-lg border border-zinc-200 bg-white p-6 animate-fade-up will-change-transform">
+        <h3 className="mb-4 text-sm font-semibold text-zinc-900">
           Límites Territoriales
         </h3>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-2 block text-sm font-medium text-zinc-700">
               País de origen
             </label>
             <select
               value={paisOrigen}
               onChange={(e) => setPaisOrigen(e.target.value)}
-              className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+              className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Seleccione...</option>
               <option value="colombia">Colombia</option>
@@ -373,13 +385,13 @@ export default function VigenciaForm() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-2 block text-sm font-medium text-zinc-700">
               Límite Territorial
             </label>
             <select
               value={limiteTerritorial}
               onChange={(e) => setLimiteTerritorial(e.target.value)}
-              className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+              className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Seleccione...</option>
               <option value="nacional">Nacional</option>
@@ -388,13 +400,13 @@ export default function VigenciaForm() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-2 block text-sm font-medium text-zinc-700">
               Jurisdicción
             </label>
             <select
               value={jurisdiccion}
               onChange={(e) => setJurisdiccion(e.target.value)}
-              className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+              className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Seleccione...</option>
               <option value="local">Local</option>
@@ -403,13 +415,13 @@ export default function VigenciaForm() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-2 block text-sm font-medium text-zinc-700">
               Moneda
             </label>
             <select
               value={moneda}
               onChange={(e) => setMoneda(e.target.value)}
-              className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+              className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Seleccione...</option>
               <option value="usd">USD</option>
@@ -419,28 +431,28 @@ export default function VigenciaForm() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-2 block text-sm font-medium text-zinc-700">
               TRM (1 USD)
             </label>
             <input
               type="text"
               value={trm}
               onChange={(e) => setTrm(e.target.value)}
-              className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+              className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
       </div>
 
       {/* Sección Descuentos de Reaseguros */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <h3 className="mb-4 text-sm font-semibold text-zinc-900 dark:text-white">
+  <div className="rounded-lg border border-zinc-200 bg-white p-6 animate-fade-up will-change-transform">
+        <h3 className="mb-4 text-sm font-semibold text-zinc-900">
           Descuentos de Reaseguros
         </h3>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="block text-sm font-medium text-zinc-700">
               Comisión Compañía Seguros
             </label>
             <div className="flex items-center gap-2">
@@ -448,14 +460,14 @@ export default function VigenciaForm() {
                 type="text"
                 value={comisionCompania}
                 onChange={(e) => setComisionCompania(e.target.value)}
-                className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <span className="text-sm text-zinc-600 dark:text-zinc-400">%</span>
+              <span className="text-sm text-zinc-600">%</span>
             </div>
           </div>
 
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="block text-sm font-medium text-zinc-700">
               Comisión Compañía ReaSeguros
             </label>
             <div className="flex items-center gap-2">
@@ -463,14 +475,14 @@ export default function VigenciaForm() {
                 type="text"
                 value={comisionReaSeguros}
                 onChange={(e) => setComisionReaSeguros(e.target.value)}
-                className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <span className="text-sm text-zinc-600 dark:text-zinc-400">%</span>
+              <span className="text-sm text-zinc-600">%</span>
             </div>
           </div>
 
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="block text-sm font-medium text-zinc-700">
               Total
             </label>
             <div className="flex items-center gap-2">
@@ -478,17 +490,17 @@ export default function VigenciaForm() {
                 type="text"
                 value={total}
                 onChange={(e) => setTotal(e.target.value)}
-                className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <span className="text-sm text-zinc-600 dark:text-zinc-400">%</span>
+              <span className="text-sm text-zinc-600">%</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Sección Reserva de primas e intereses */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <h3 className="mb-6 text-sm font-semibold text-zinc-900 dark:text-white">
+      <div className="rounded-lg border border-zinc-200 bg-white p-6">
+        <h3 className="mb-6 text-sm font-semibold text-zinc-900">
           Reserva de primas e intereses
         </h3>
 
@@ -497,7 +509,7 @@ export default function VigenciaForm() {
           <div className="flex flex-wrap items-end gap-4">
             {/* Reserva de primas e intereses */}
             <div className="w-32">
-              <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <label className="mb-2 block text-sm font-medium text-zinc-700">
                 Reserva de primas e intereses
               </label>
               <div className="flex items-center gap-2">
@@ -506,15 +518,15 @@ export default function VigenciaForm() {
                   value={reservaPrimas}
                   onChange={(e) => setReservaPrimas(e.target.value)}
                   placeholder="20"
-                  className="w-20 rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-center text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                  className="w-20 rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-center text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">%</span>
+                <span className="text-sm font-medium text-zinc-600">%</span>
               </div>
             </div>
 
             {/* Días */}
             <div className="w-28">
-              <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <label className="mb-2 block text-sm font-medium text-zinc-700">
                 Días
               </label>
               <input
@@ -522,19 +534,19 @@ export default function VigenciaForm() {
                 value={reservaDias}
                 onChange={(e) => setReservaDias(e.target.value)}
                 placeholder="60"
-                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-center text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-center text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             {/* Vigencia */}
             <div className="w-48">
-              <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <label className="mb-2 block text-sm font-medium text-zinc-700">
                 Vigencia
               </label>
               <div className="datepicker-wrapper relative">
                 <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3">
                   <svg
-                    className="h-5 w-5 text-zinc-400 dark:text-zinc-500"
+                    className="h-5 w-5 text-zinc-400"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -547,12 +559,12 @@ export default function VigenciaForm() {
                     />
                   </svg>
                 </div>
-                <DatePicker
+                  <DatePicker
                   selected={reservaVigencia}
                   onChange={(date: Date | null) => setReservaVigencia(date)}
                   dateFormat="dd/MM/yyyy"
                   placeholderText="Seleccionar fecha"
-                  className="w-full rounded-lg border border-zinc-300 bg-white py-2.5 pl-10 pr-4 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-400"
+                    className="w-full rounded-lg border border-zinc-300 bg-white py-2.5 pl-10 pr-4 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   wrapperClassName="w-full"
                   showMonthDropdown
                   showYearDropdown
@@ -564,7 +576,7 @@ export default function VigenciaForm() {
 
           {/* Textarea */}
           <div className="flex-1">
-            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-2 block text-sm font-medium text-zinc-700">
               Descripción
             </label>
             <textarea
@@ -572,20 +584,20 @@ export default function VigenciaForm() {
               onChange={(e) => setReservaTexto(e.target.value)}
               rows={3}
               placeholder="a ser liberadas y pagadas (N) días después de finalizada la vigencia del presente contrato de reaseguro."
-              className="w-full resize-none rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+              className="w-full resize-none rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
       </div>
 
       {/* Sección Elección del Derecho Aplicable y Jurisdicción */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <h3 className="mb-4 text-sm font-semibold text-zinc-900 dark:text-white">
+      <div className="rounded-lg border border-zinc-200 bg-white p-6">
+        <h3 className="mb-4 text-sm font-semibold text-zinc-900">
           Elección del Derecho Aplicable y Jurisdicción
         </h3>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <label className="mb-2 block text-sm font-medium text-zinc-700">
             Elección del Derecho Aplicable y Jurisdicción
           </label>
           <textarea
@@ -593,26 +605,26 @@ export default function VigenciaForm() {
             onChange={(e) => setDerechoAplicable(e.target.value)}
             rows={3}
             placeholder="El presente contrato de reaseguro será regido por las leyes de (PAÍS)"
-            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
       </div>
 
       {/* Sección Sede Arbitraje */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <h3 className="mb-4 text-sm font-semibold text-zinc-900 dark:text-white">
+      <div className="rounded-lg border border-zinc-200 bg-white p-6">
+        <h3 className="mb-4 text-sm font-semibold text-zinc-900">
           Sede Arbitraje
         </h3>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <label className="mb-2 block text-sm font-medium text-zinc-700">
             Sede Arbitraje
           </label>
           <input
             type="text"
             value={sedeArbitraje}
             onChange={(e) => setSedeArbitraje(e.target.value)}
-            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
       </div>

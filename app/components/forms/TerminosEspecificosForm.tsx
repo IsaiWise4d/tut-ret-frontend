@@ -38,9 +38,9 @@ export default function TerminosEspecificosForm() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      {/* Sección Términos y Condiciones Específicas */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <h3 className="mb-6 text-sm font-semibold text-zinc-900 dark:text-white">
+  {/* Sección Términos y Condiciones Específicas */}
+  <div className="rounded-lg border border-zinc-200 bg-white p-6 animate-fade-up will-change-transform">
+        <h3 className="mb-6 text-sm font-semibold text-zinc-900">
           Términos y Condiciones Específicas
         </h3>
 
@@ -48,7 +48,7 @@ export default function TerminosEspecificosForm() {
           {condiciones.map((condicion, index) => (
             <div key={condicion.id} className="flex items-start gap-4">
               {/* Número */}
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-50 to-purple-50 text-sm font-semibold text-blue-600 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-400">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-50 to-purple-50 text-sm font-semibold text-blue-600">
                 {index + 1}.
               </div>
 
@@ -61,7 +61,7 @@ export default function TerminosEspecificosForm() {
                     actualizarCondicion(condicion.id, e.target.value)
                   }
                   placeholder={placeholders[index]}
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -69,9 +69,9 @@ export default function TerminosEspecificosForm() {
         </div>
       </div>
 
-      {/* Sección Exclusiones */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <h3 className="mb-6 text-sm font-semibold text-zinc-900 dark:text-white">
+  {/* Sección Exclusiones */}
+  <div className="rounded-lg border border-zinc-200 bg-white p-6 animate-fade-up will-change-transform">
+        <h3 className="mb-6 text-sm font-semibold text-zinc-900">
           Exclusiones
         </h3>
 
@@ -80,7 +80,7 @@ export default function TerminosEspecificosForm() {
           value={exclusiones}
           onChange={(e) => setExclusiones(e.target.value)}
           placeholder="Según póliza original."
-          className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+          className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
     </div>

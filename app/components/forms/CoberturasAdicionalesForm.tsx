@@ -9,6 +9,7 @@ interface CoberturaAdicional {
 }
 
 export default function CoberturasAdicionalesForm() {
+  const [removingIds, setRemovingIds] = useState<number[]>([]);
   const [coberturas, setCoberturas] = useState<CoberturaAdicional[]>([
     {
       id: 1,
@@ -68,22 +69,26 @@ export default function CoberturasAdicionalesForm() {
   };
 
   const eliminarCobertura = (id: number) => {
-    if (coberturas.length > 1) {
-      setCoberturas(coberturas.filter((c) => c.id !== id));
+    if (coberturas.length > 1 && !removingIds.includes(id)) {
+      setRemovingIds((prev) => [...prev, id]);
+      setTimeout(() => {
+        setCoberturas((prev) => prev.filter((c) => c.id !== id));
+        setRemovingIds((prev) => prev.filter((i) => i !== id));
+      }, 200);
     }
   };
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="rounded-lg border border-zinc-200 bg-white p-6 animate-fade-up will-change-transform">
         <div className="mb-6 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">
+          <h3 className="text-sm font-semibold text-zinc-900">
             Coberturas Adicionales
           </h3>
           <button
             type="button"
             onClick={agregarCobertura}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900"
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             <svg
               className="h-4 w-4"
@@ -106,14 +111,18 @@ export default function CoberturasAdicionalesForm() {
           {coberturas.map((cobertura) => (
             <div
               key={cobertura.id}
-              className="group flex items-start gap-4 rounded-lg border border-zinc-200 bg-white p-4 transition-all hover:border-zinc-300 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-800/50 dark:hover:border-zinc-600"
+              className={
+                `group flex items-start gap-4 rounded-lg border border-zinc-200 bg-white p-4 transition-all hover:border-zinc-300 hover:shadow-sm will-change-transform ${
+                  removingIds.includes(cobertura.id) ? 'animate-pop-out' : 'animate-pop'
+                }`
+              }
             >
               <input
                 type="checkbox"
                 id={`cobertura-${cobertura.id}`}
                 checked={cobertura.checked}
                 onChange={() => handleCheckboxChange(cobertura.id)}
-                className="mt-0.5 h-5 w-5 flex-shrink-0 rounded border-zinc-300 text-blue-600 transition-all focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 dark:border-zinc-600 dark:bg-zinc-700"
+                className="mt-0.5 h-5 w-5 flex-shrink-0 rounded border-zinc-300 text-blue-600 transition-all focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
               />
               <div className="flex-1">
                 <input
@@ -123,14 +132,14 @@ export default function CoberturasAdicionalesForm() {
                     handleTextoChange(cobertura.id, e.target.value)
                   }
                   placeholder="Descripción de la cobertura adicional..."
-                  className="w-full border-0 bg-transparent px-0 py-0 text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-0 dark:text-white dark:placeholder-zinc-500"
+                  className="w-full border-0 bg-transparent px-0 py-0 text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-0"
                 />
               </div>
               {coberturas.length > 1 && (
                 <button
                   type="button"
                   onClick={() => eliminarCobertura(cobertura.id)}
-                  className="flex-shrink-0 rounded-lg p-1.5 text-zinc-400 opacity-0 transition-all hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                  className="flex-shrink-0 rounded-lg p-1.5 text-zinc-400 opacity-0 transition-all hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
                   title="Eliminar cobertura"
                 >
                   <svg
@@ -153,10 +162,10 @@ export default function CoberturasAdicionalesForm() {
         </div>
 
         {coberturas.length === 0 && (
-          <div className="py-12 text-center">
-            <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/30 dark:to-purple-900/30">
+            <div className="py-12 text-center">
+            <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-50 to-purple-50">
               <svg
-                className="h-8 w-8 text-blue-600 dark:text-blue-400"
+                className="h-8 w-8 text-blue-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -169,7 +178,7 @@ export default function CoberturasAdicionalesForm() {
                 />
               </svg>
             </div>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm text-zinc-500">
               No hay coberturas adicionales. Haz clic en &quot;Añadir Cobertura&quot; para comenzar.
             </p>
           </div>

@@ -14,8 +14,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #ffffff;
+    --foreground: #171717;
   }
 }
 
@@ -23,4 +23,55 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Animaciones ligeras para mayor dinamismo en formularios */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-up {
+  animation: fadeUp 220ms cubic-bezier(.2, .9, .2, 1) both;
+}
+
+.animate-pop {
+  animation: popIn 200ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+@keyframes popOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(.96);
+  }
+}
+
+.animate-pop-out {
+  animation: popOut 180ms ease-in both;
+}
+
+/* Pequeña mejora de rendimiento visual */
+.will-change-transform {
+  will-change: transform, opacity;
 }

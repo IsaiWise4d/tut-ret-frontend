@@ -29,6 +29,7 @@ export default function ClausulasForm() {
   );
 
   const [dropdown, setDropdown] = useState("");
+  const [removingIds, setRemovingIds] = useState<number[]>([]);
 
   const actualizarClausula = (id: number, texto: string) => {
     setClausulas((prev) =>
@@ -42,22 +43,26 @@ export default function ClausulasForm() {
   };
 
   const eliminarClausula = (id: number) => {
-    if (clausulas.length > 1) {
-      setClausulas(clausulas.filter((c) => c.id !== id));
+    if (clausulas.length > 1 && !removingIds.includes(id)) {
+      setRemovingIds((prev) => [...prev, id]);
+      setTimeout(() => {
+        setClausulas((prev) => prev.filter((c) => c.id !== id));
+        setRemovingIds((prev) => prev.filter((i) => i !== id));
+      }, 200);
     }
   };
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       {/* Sección Cláusulas de Reaseguro */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+  <div className="rounded-lg border border-zinc-200 bg-white p-6 animate-fade-up will-change-transform">
         <div className="mb-6 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">
+          <h3 className="text-sm font-semibold text-zinc-900">
             Cláusulas
           </h3>
           <button
             onClick={agregarClausula}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900"
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             + Agregar Cláusula
           </button>
@@ -66,9 +71,16 @@ export default function ClausulasForm() {
         <div className="space-y-4">
           {/* Cláusulas numeradas */}
           {clausulas.map((clausula, index) => (
-            <div key={clausula.id} className="flex items-start gap-4">
+            <div
+              key={clausula.id}
+              className={
+                `flex items-start gap-4 will-change-transform ${
+                  removingIds.includes(clausula.id) ? 'animate-pop-out' : 'animate-pop'
+                }`
+              }
+            >
               {/* Número */}
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-50 to-purple-50 text-sm font-semibold text-blue-600 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-400">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-50 to-purple-50 text-sm font-semibold text-blue-600">
                 {index + 1}.
               </div>
 
@@ -81,7 +93,7 @@ export default function ClausulasForm() {
                     actualizarClausula(clausula.id, e.target.value)
                   }
                   placeholder={placeholders[index] || "Ingrese la cláusula"}
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
@@ -89,7 +101,7 @@ export default function ClausulasForm() {
               {clausulas.length > 1 && (
                 <button
                   onClick={() => eliminarClausula(clausula.id)}
-                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border-2 border-red-500 text-red-500 transition-all hover:bg-red-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900"
+                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border-2 border-red-500 text-red-500 transition-all hover:bg-red-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
                   title="Eliminar cláusula"
                 >
                   <svg
@@ -115,7 +127,7 @@ export default function ClausulasForm() {
             <select
               value={dropdown}
               onChange={(e) => setDropdown(e.target.value)}
-              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value=""></option>
               <option value="opcion1">Opción 1</option>

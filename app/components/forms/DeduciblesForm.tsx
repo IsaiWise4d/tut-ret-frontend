@@ -31,6 +31,7 @@ export default function DeduciblesForm() {
       textoGastosDefensa: "",
     },
   ]);
+  const [removingIds, setRemovingIds] = useState<number[]>([]);
 
   // Agregar nueva alternativa
   const agregarAlternativa = () => {
@@ -48,8 +49,12 @@ export default function DeduciblesForm() {
 
   // Eliminar alternativa
   const eliminarAlternativa = (id: number) => {
-    if (alternativas.length > 1) {
-      setAlternativas(alternativas.filter((alt) => alt.id !== id));
+    if (alternativas.length > 1 && !removingIds.includes(id)) {
+      setRemovingIds((prev) => [...prev, id]);
+      setTimeout(() => {
+        setAlternativas((prev) => prev.filter((alt) => alt.id !== id));
+        setRemovingIds((prev) => prev.filter((i) => i !== id));
+      }, 200);
     }
   };
 
@@ -68,9 +73,9 @@ export default function DeduciblesForm() {
 
   return (
     <div className="space-y-6">
-      {/* Sección Principal - Deducibles */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <h3 className="mb-4 text-sm font-semibold text-zinc-900 dark:text-white">
+  {/* Sección Principal - Deducibles */}
+  <div className="rounded-lg border border-zinc-200 bg-white p-6 animate-fade-up will-change-transform">
+        <h3 className="mb-4 text-sm font-semibold text-zinc-900">
           Deducibles
         </h3>
 
@@ -80,7 +85,7 @@ export default function DeduciblesForm() {
             onChange={(e) => setDeduciblesTexto(e.target.value)}
             rows={2}
             placeholder="Por toda y cada pérdida"
-            className="w-full resize-none rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+            className="w-full resize-none rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
       </div>
@@ -89,17 +94,21 @@ export default function DeduciblesForm() {
       {alternativas.map((alternativa, index) => (
         <div
           key={alternativa.id}
-          className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900"
+          className={
+            `rounded-lg border border-zinc-200 bg-white p-6 will-change-transform ${
+              removingIds.includes(alternativa.id) ? 'animate-pop-out' : 'animate-pop'
+            }`
+          }
         >
           <div className="mb-6 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">
+            <h3 className="text-sm font-semibold text-zinc-900">
               Deducibles - Alternativa {alternativa.id}
             </h3>
             <div className="flex gap-2">
               {index === alternativas.length - 1 && (
                 <button
                   onClick={agregarAlternativa}
-                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900"
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
                   + Agregar Alternativa
                 </button>
@@ -107,7 +116,7 @@ export default function DeduciblesForm() {
               {alternativas.length > 1 && (
                 <button
                   onClick={() => eliminarAlternativa(alternativa.id)}
-                  className="rounded-lg border-2 border-red-500 px-4 py-2 text-sm font-semibold text-red-500 transition-all hover:bg-red-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900"
+                  className="rounded-lg border-2 border-red-500 px-4 py-2 text-sm font-semibold text-red-500 transition-all hover:bg-red-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
                 >
                   Eliminar
                 </button>
@@ -118,7 +127,7 @@ export default function DeduciblesForm() {
           {/* Campos de porcentaje y mínimo */}
           <div className="mb-4 flex flex-wrap items-end gap-4">
             <div className="w-40">
-              <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <label className="mb-2 block text-sm font-medium text-zinc-700">
                 % sobre pérdida
               </label>
               <div className="flex items-center gap-2">
@@ -132,16 +141,16 @@ export default function DeduciblesForm() {
                       e.target.value
                     )
                   }
-                  className="w-24 rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-center text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                  className="w-24 rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-center text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                <span className="text-sm font-medium text-zinc-600">
                   %
                 </span>
               </div>
             </div>
 
             <div className="flex-1">
-              <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <label className="mb-2 block text-sm font-medium text-zinc-700">
                 Con un mínimo de
               </label>
               <input
@@ -154,7 +163,7 @@ export default function DeduciblesForm() {
                     e.target.value
                   )
                 }
-                className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -162,7 +171,7 @@ export default function DeduciblesForm() {
           {/* Textareas de descripción */}
           <div className="mb-6 space-y-4">
             <div>
-              <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <label className="mb-2 block text-sm font-medium text-zinc-700">
                 Alternativa {alternativa.id}
               </label>
               <textarea
@@ -176,7 +185,7 @@ export default function DeduciblesForm() {
                 }
                 rows={2}
                 placeholder={`Alt ${alternativa.id}. (PORC PERD) sobre el valor de la pérdida un mínimo de COP (MINIMO), cualquiera que se sea la suma mayor que aplique.`}
-                className="w-full resize-none rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                className="w-full resize-none rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
@@ -192,16 +201,16 @@ export default function DeduciblesForm() {
                 }
                 rows={2}
                 placeholder="Gastos médicos provenientes Local, Predios y Operaciones (PLO): Sin deducible."
-                className="w-full resize-none rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                className="w-full resize-none rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
 
           {/* Sección % de gastos de defensa */}
-          <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800/50">
+          <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
             <div className="mb-4 flex flex-wrap items-end gap-4">
               <div className="w-40">
-                <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <label className="mb-2 block text-sm font-medium text-zinc-700">
                   % de gastos de defensa
                 </label>
                 <div className="flex items-center gap-2">
@@ -215,9 +224,9 @@ export default function DeduciblesForm() {
                         e.target.value
                       )
                     }
-                    className="w-24 rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-center text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                    className="w-24 rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-center text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                  <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                  <span className="text-sm font-medium text-zinc-600">
                     %
                   </span>
                 </div>
@@ -236,7 +245,7 @@ export default function DeduciblesForm() {
                 }
                 rows={2}
                 placeholder="Gastos de defensa (PORC GASTOS) de los gastos para todo y cada reclamo."
-                className="w-full resize-none rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                className="w-full resize-none rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -244,8 +253,8 @@ export default function DeduciblesForm() {
       ))}
 
       {/* Sección No aplica Deducible */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <h3 className="mb-4 text-sm font-semibold text-zinc-900 dark:text-white">
+      <div className="rounded-lg border border-zinc-200 bg-white p-6">
+        <h3 className="mb-4 text-sm font-semibold text-zinc-900">
           No aplica Deducible
         </h3>
 
@@ -259,7 +268,7 @@ export default function DeduciblesForm() {
 •    Transacciones extrajudiciales.
 •    Gastos médicos provenientes de Local, Predios y Operaciones (PLO).
 •    Beneficios Adicionales.`}
-            className="w-full resize-none rounded-lg border border-zinc-300 bg-white px-4 py-2.5 font-mono text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+            className="w-full resize-none rounded-lg border border-zinc-300 bg-white px-4 py-2.5 font-mono text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
       </div>
