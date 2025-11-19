@@ -56,9 +56,9 @@ export default function FormsPage() {
     // Lógica para cancelar
   };
 
-  const handleGenerateSplit = () => {
-    console.log("Generando Split...");
-    // Lógica para generar split
+  const handleGenerateSlip = () => {
+    console.log("Generando Slip...");
+    // Lógica para generar slip
   };
 
   return (
@@ -67,7 +67,7 @@ export default function FormsPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-zinc-900">
-            Split de Reaseguro
+            Slip de Reaseguro
           </h1>
           <p className="mt-2 text-sm text-zinc-600">
             Complete los datos del formulario en cada pestaña
@@ -188,9 +188,9 @@ export default function FormsPage() {
             Cancelar
           </button>
 
-          {/* Botón Generar Split */}
+          {/* Botón Generar Slip */}
           <button
-            onClick={handleGenerateSplit}
+            onClick={handleGenerateSlip}
             className="group relative inline-flex items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-purple-500/50 transition-all duration-300 hover:scale-105 hover:shadow-purple-500/70 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
           >
             <svg
@@ -206,7 +206,7 @@ export default function FormsPage() {
                 d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
               />
             </svg>
-            Generar Split
+            Generar Slip
             <svg
               className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1"
               fill="none"
