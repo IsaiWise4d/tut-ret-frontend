@@ -22,9 +22,7 @@ Registra un nuevo asegurado en el sistema.
     "razon_social": "Empresa S.A.",
     "identificacion": "1234567890",
     "nombre": "Juan Pérez",
-    "direccion": "Av. Principal 123",  
-    "telefono": "+57 300 123 4567",    
-    "correo": "contacto@empresa.com"   
+    "correo": "contacto@empresa.com"   // Opcional
   }
   ```
 - **Respuesta Exitosa (200 OK)**:
@@ -33,8 +31,6 @@ Registra un nuevo asegurado en el sistema.
     "razon_social": "Empresa S.A.",
     "identificacion": "1234567890",
     "nombre": "Juan Pérez",
-    "direccion": "Av. Principal 123",
-    "telefono": "+57 300 123 4567",
     "correo": "contacto@empresa.com",
     "id": 1,
     "ubicaciones": []
@@ -58,8 +54,6 @@ Obtiene la lista de todos los asegurados registrados.
       "razon_social": "Empresa S.A.",
       "identificacion": "1234567890",
       "nombre": "Juan Pérez",
-      "direccion": "Av. Principal 123",
-      "telefono": "+57 300 123 4567",
       "correo": "contacto@empresa.com",
       "id": 1,
       "ubicaciones": []
@@ -94,7 +88,9 @@ Agrega una nueva ubicación a un asegurado existente.
   ```json
   {
     "ciudad": "Bogotá",
-    "pais": "Colombia"
+    "pais": "Colombia",
+    "direccion": "Av. Principal 123",
+    "telefono": "+57 300 123 4567"
   }
   ```
 - **Respuesta Exitosa (200 OK)**:
@@ -102,6 +98,8 @@ Agrega una nueva ubicación a un asegurado existente.
   {
     "ciudad": "Bogotá",
     "pais": "Colombia",
+    "direccion": "Av. Principal 123",
+    "telefono": "+57 300 123 4567",
     "id": 5,
     "asegurado_id": 1
   }
@@ -121,12 +119,16 @@ Obtiene todas las ubicaciones asociadas a un asegurado.
     {
       "ciudad": "Bogotá",
       "pais": "Colombia",
+      "direccion": "Av. Principal 123",
+      "telefono": "+57 300 123 4567",
       "id": 5,
       "asegurado_id": 1
     },
     {
       "ciudad": "Medellín",
       "pais": "Colombia",
+      "direccion": "Calle 10 # 20-30",
+      "telefono": "+57 300 987 6543",
       "id": 6,
       "asegurado_id": 1
     }

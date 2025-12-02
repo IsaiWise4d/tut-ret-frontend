@@ -14,6 +14,9 @@ export default function AseguradosPage() {
 }
 
 function AseguradosContent() {
+    // View Mode: 'list' | 'form'
+    const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
+
     const [asegurados, setAsegurados] = useState<Asegurado[]>([]);
     const [selectedAsegurado, setSelectedAsegurado] = useState<Asegurado | null>(null);
     const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
@@ -26,14 +29,11 @@ function AseguradosContent() {
     const [searchResults, setSearchResults] = useState<Asegurado[]>([]);
 
     // Estados para formulario de asegurado
-    const [showAseguradoForm, setShowAseguradoForm] = useState(false);
     const [editingAsegurado, setEditingAsegurado] = useState<Asegurado | null>(null);
     const [aseguradoFormData, setAseguradoFormData] = useState<CreateAseguradoData>({
         razon_social: '',
         identificacion: '',
         nombre: '',
-        direccion: '',
-        telefono: '',
         correo: '',
     });
     const [aseguradoFormError, setAseguradoFormError] = useState('');
@@ -45,6 +45,8 @@ function AseguradosContent() {
     const [ubicacionFormData, setUbicacionFormData] = useState<CreateUbicacionData>({
         ciudad: '',
         pais: '',
+        direccion: '',
+        telefono: '',
     });
     const [ubicacionFormError, setUbicacionFormError] = useState('');
     const [isSubmittingUbicacion, setIsSubmittingUbicacion] = useState(false);
@@ -102,47 +104,52 @@ function AseguradosContent() {
     // Buscar asegurados
     useEffect(() => {
         if (!searchQuery.trim()) {
-            setSearchResults([]);
+            setSearchResults(asegurados);
             return;
         }
 
         const results = asegurados.filter(aseg =>
-            aseg.identificacion.toLowerCase().includes(searchQuery.toLowerCase())
+            aseg.identificacion.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            aseg.razon_social.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            aseg.nombre.toLowerCase().includes(searchQuery.toLowerCase())
         );
         setSearchResults(results);
     }, [searchQuery, asegurados]);
-
-    const handleSelectAsegurado = async (asegurado: Asegurado) => {
-        setSelectedAsegurado(asegurado);
-        await loadUbicaciones(asegurado.id);
-        setShowUbicacionForm(false);
-    };
 
     const resetAseguradoForm = () => {
         setAseguradoFormData({
             razon_social: '',
             identificacion: '',
             nombre: '',
-            direccion: '',
-            telefono: '',
             correo: '',
         });
         setEditingAsegurado(null);
-        setShowAseguradoForm(false);
+        setSelectedAsegurado(null);
         setAseguradoFormError('');
+        setUbicaciones([]);
     };
 
-    const handleEditAsegurado = (asegurado: Asegurado) => {
+    const handleSwitchToCreate = () => {
+        resetAseguradoForm();
+        setViewMode('form');
+    };
+
+    const handleSwitchToList = () => {
+        setViewMode('list');
+        resetAseguradoForm();
+    };
+
+    const handleEditAsegurado = async (asegurado: Asegurado) => {
         setEditingAsegurado(asegurado);
+        setSelectedAsegurado(asegurado);
         setAseguradoFormData({
             razon_social: asegurado.razon_social,
             identificacion: asegurado.identificacion,
             nombre: asegurado.nombre,
-            direccion: asegurado.direccion || '',
-            telefono: asegurado.telefono || '',
             correo: asegurado.correo || '',
         });
-        setShowAseguradoForm(true);
+        await loadUbicaciones(asegurado.id);
+        setViewMode('form');
     };
 
     const handleSubmitAsegurado = async (e: React.FormEvent) => {
@@ -153,36 +160,21 @@ function AseguradosContent() {
         try {
             if (editingAsegurado) {
                 const updated = await api.updateAsegurado(editingAsegurado.id, aseguradoFormData);
-                if (selectedAsegurado?.id === editingAsegurado.id) {
-                    setSelectedAsegurado(updated);
-                }
+                setSelectedAsegurado(updated);
+                setEditingAsegurado(updated);
+                alert('Asegurado actualizado correctamente');
             } else {
                 const newAsegurado = await api.createAsegurado(aseguradoFormData);
-                // Seleccionar automáticamente el asegurado recién creado
                 setSelectedAsegurado(newAsegurado);
+                setEditingAsegurado(newAsegurado); // Switch to edit mode after creation
                 await loadUbicaciones(newAsegurado.id);
+                alert('Asegurado creado correctamente. Ahora puedes agregar ubicaciones.');
             }
-            resetAseguradoForm();
             await loadAsegurados();
         } catch (err) {
             setAseguradoFormError(err instanceof Error ? err.message : 'Error al guardar asegurado');
         } finally {
             setIsSubmittingAsegurado(false);
-        }
-    };
-
-    const handleDeleteAsegurado = async (id: number) => {
-        if (!confirm('¿Estás seguro de eliminar este asegurado?')) return;
-
-        try {
-            await api.deleteAsegurado(id);
-            if (selectedAsegurado?.id === id) {
-                setSelectedAsegurado(null);
-                setUbicaciones([]);
-            }
-            await loadAsegurados();
-        } catch (err) {
-            alert(err instanceof Error ? err.message : 'Error al eliminar');
         }
     };
 
@@ -195,11 +187,12 @@ function AseguradosContent() {
 
         try {
             await api.createUbicacion(selectedAsegurado.id, ubicacionFormData);
-            setUbicacionFormData({ ciudad: '', pais: '' });
+            setUbicacionFormData({ ciudad: '', pais: '', direccion: '', telefono: '' });
             setShowUbicacionForm(false);
             setModoUbicacion('select');
             await loadUbicaciones(selectedAsegurado.id);
             await loadTodasUbicaciones();
+            await loadAsegurados();
         } catch (err) {
             setUbicacionFormError(err instanceof Error ? err.message : 'Error al crear ubicación');
         } finally {
@@ -212,12 +205,13 @@ function AseguradosContent() {
 
         setIsSubmittingUbicacion(true);
         try {
-            await api.createUbicacion(selectedAsegurado.id, {
+            setUbicacionFormData({
                 ciudad: ubicacion.ciudad,
                 pais: ubicacion.pais,
+                direccion: '',
+                telefono: ''
             });
-            setShowUbicacionForm(false);
-            await loadUbicaciones(selectedAsegurado.id);
+            setModoUbicacion('manual');
         } catch (err) {
             setUbicacionFormError(err instanceof Error ? err.message : 'Error');
         } finally {
@@ -232,6 +226,7 @@ function AseguradosContent() {
             await api.deleteUbicacion(selectedAsegurado.id, ubicacionId);
             await loadUbicaciones(selectedAsegurado.id);
             await loadTodasUbicaciones();
+            await loadAsegurados();
         } catch (err) {
             alert('Error al eliminar ubicación');
         }
@@ -240,207 +235,209 @@ function AseguradosContent() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 px-4 py-12 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-7xl">
-                <div className="mb-8">
-                    <h1 className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-4xl font-bold text-transparent">
-                        Gestión de Asegurados
-                    </h1>
-                    <p className="mt-2 text-zinc-600">Administra asegurados y sus ubicaciones</p>
+                <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                    <div>
+                        <h1 className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-4xl font-bold text-transparent">
+                            Gestión de Asegurados
+                        </h1>
+                        <p className="mt-2 text-zinc-600">Administra asegurados y sus ubicaciones</p>
+                    </div>
+                    <div className="flex rounded-lg bg-zinc-100 p-1 shadow-inner">
+                        <button
+                            onClick={handleSwitchToList}
+                            className={`rounded-md px-4 py-2 text-sm font-medium transition-all ${viewMode === 'list'
+                                ? 'bg-white text-blue-600 shadow-sm'
+                                : 'text-zinc-500 hover:text-zinc-700'
+                                }`}
+                        >
+                            Ver Asegurados
+                        </button>
+                        <button
+                            onClick={handleSwitchToCreate}
+                            className={`rounded-md px-4 py-2 text-sm font-medium transition-all ${viewMode === 'form'
+                                ? 'bg-white text-blue-600 shadow-sm'
+                                : 'text-zinc-500 hover:text-zinc-700'
+                                }`}
+                        >
+                            Crear Asegurado
+                        </button>
+                    </div>
                 </div>
 
-                <div className="grid gap-8 lg:grid-cols-2">
-                    {/* Sección Asegurados */}
-                    <div>
-                        <div className="mb-4 flex items-center justify-between">
-                            <h2 className="text-2xl font-semibold text-zinc-800">Asegurados</h2>
-                            <button
-                                onClick={() => showAseguradoForm ? resetAseguradoForm() : setShowAseguradoForm(true)}
-                                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-purple-500/40 transition-all hover:scale-[1.02]"
-                            >
-                                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={showAseguradoForm ? "M6 18L18 6M6 6l12 12" : "M12 6v6m0 0v6m0-6h6m-6 0H6"} />
-                                </svg>
-                                {showAseguradoForm ? 'Cancelar' : 'Nuevo Asegurado'}
-                            </button>
-                        </div>
-
-                        {/* Formulario */}
-                        {showAseguradoForm && (
-                            <div className="mb-6 rounded-2xl bg-white p-6 shadow-xl">
-                                <h3 className="mb-4 text-lg font-semibold text-zinc-800">
-                                    {editingAsegurado ? 'Editar' : 'Nuevo'} Asegurado
-                                </h3>
-                                {aseguradoFormError && (
-                                    <div className="mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-800 border border-red-200">
-                                        {aseguradoFormError}
-                                    </div>
-                                )}
-                                <form onSubmit={handleSubmitAsegurado} className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-zinc-700">Razón Social *</label>
-                                        <input type="text" required value={aseguradoFormData.razon_social}
-                                            onChange={(e) => setAseguradoFormData({ ...aseguradoFormData, razon_social: e.target.value })}
-                                            className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-                                    </div>
-                                    <div className="grid gap-4 sm:grid-cols-2">
-                                        <div>
-                                            <label className="block text-sm font-medium text-zinc-700">Identificación *</label>
-                                            <input type="text" required value={aseguradoFormData.identificacion}
-                                                onChange={(e) => setAseguradoFormData({ ...aseguradoFormData, identificacion: e.target.value })}
-                                                className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-zinc-700">Nombre *</label>
-                                            <input type="text" required value={aseguradoFormData.nombre}
-                                                onChange={(e) => setAseguradoFormData({ ...aseguradoFormData, nombre: e.target.value })}
-                                                className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-zinc-700">Dirección</label>
-                                        <input type="text" value={aseguradoFormData.direccion}
-                                            onChange={(e) => setAseguradoFormData({ ...aseguradoFormData, direccion: e.target.value })}
-                                            className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-                                    </div>
-                                    <div className="grid gap-4 sm:grid-cols-2">
-                                        <div>
-                                            <label className="block text-sm font-medium text-zinc-700">Teléfono</label>
-                                            <input type="tel" value={aseguradoFormData.telefono}
-                                                onChange={(e) => setAseguradoFormData({ ...aseguradoFormData, telefono: e.target.value })}
-                                                className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-zinc-700">Correo</label>
-                                            <input type="email" value={aseguradoFormData.correo}
-                                                onChange={(e) => setAseguradoFormData({ ...aseguradoFormData, correo: e.target.value })}
-                                                className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-                                        </div>
-                                    </div>
-                                    <button type="submit" disabled={isSubmittingAsegurado}
-                                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg disabled:opacity-50">
-                                        {isSubmittingAsegurado ? 'Guardando...' : (editingAsegurado ? 'Guardar' : 'Crear')}
-                                    </button>
-                                </form>
-                            </div>
-                        )}
-
+                {viewMode === 'list' ? (
+                    /* VISTA DE LISTA */
+                    <div className="space-y-6">
                         {/* Buscador */}
-                        <div className="mb-4 rounded-2xl bg-white p-4 shadow-xl">
-                            <label className="block text-sm font-medium text-zinc-700 mb-2">Buscar por Identificación</label>
+                        <div className="rounded-2xl bg-white p-4 shadow-xl shadow-zinc-200/50">
                             <div className="relative">
                                 <input
                                     type="text"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="Ej: 123456789"
+                                    placeholder="Buscar por nombre, identificación o razón social..."
                                     className="block w-full rounded-lg border border-zinc-300 pl-10 pr-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                                 />
                                 <svg className="absolute left-3 top-2.5 h-5 w-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
                             </div>
-                            {searchQuery && <p className="mt-2 text-sm text-zinc-600">{searchResults.length} resultado(s)</p>}
                         </div>
 
-                        {/* Resultados de búsqueda */}
-                        {searchQuery ? (
-                            <div className="rounded-2xl bg-white shadow-xl overflow-hidden">
-                                {searchResults.length === 0 ? (
-                                    <div className="p-8 text-center text-zinc-500">No se encontraron resultados</div>
-                                ) : (
-                                    <div className="divide-y divide-zinc-200">
-                                        {searchResults.map((asegurado) => (
-                                            <div key={asegurado.id} className={`p-4 ${selectedAsegurado?.id === asegurado.id ? 'bg-blue-50 border-l-4 border-blue-600' : 'hover:bg-zinc-50'}`}>
-                                                <div className="flex justify-between">
-                                                    <div className="flex-1 cursor-pointer" onClick={() => handleSelectAsegurado(asegurado)}>
-                                                        <h4 className="font-semibold text-zinc-900">{asegurado.razon_social}</h4>
-                                                        <p className="text-sm text-zinc-600">ID: {asegurado.identificacion}</p>
-                                                        <p className="text-sm text-zinc-600">{asegurado.nombre}</p>
-                                                    </div>
-                                                    <div className="flex gap-2">
-                                                        <button onClick={() => handleEditAsegurado(asegurado)} className="text-blue-600 hover:text-blue-900">
-                                                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                            </svg>
+                        {/* Tabla */}
+                        <div className="rounded-2xl bg-white shadow-xl shadow-zinc-200/50 overflow-hidden">
+                            {isLoading ? (
+                                <div className="flex justify-center p-12">
+                                    <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+                                </div>
+                            ) : searchResults.length === 0 ? (
+                                <div className="p-12 text-center text-zinc-500">
+                                    No se encontraron asegurados
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-zinc-200">
+                                        <thead className="bg-zinc-50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Razón Social</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Identificación</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Nombre</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Correo</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Ubicaciones</th>
+                                                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-zinc-200 bg-white">
+                                            {searchResults.map((asegurado) => (
+                                                <tr key={asegurado.id} className="transition-colors hover:bg-zinc-50">
+                                                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-zinc-900">{asegurado.razon_social}</td>
+                                                    <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-500">{asegurado.identificacion}</td>
+                                                    <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-500">{asegurado.nombre}</td>
+                                                    <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-500">{asegurado.correo || '-'}</td>
+                                                    <td className="px-6 py-4 text-sm text-zinc-500">
+                                                        {asegurado.ubicaciones && asegurado.ubicaciones.length > 0 ? (
+                                                            <div className="flex flex-col gap-1">
+                                                                {asegurado.ubicaciones.map((ubi, idx) => (
+                                                                    <span key={idx} className="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-800">
+                                                                        {ubi.ciudad}, {ubi.pais}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-zinc-400">-</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="whitespace-nowrap px-6 py-4 text-right text-sm">
+                                                        <button
+                                                            onClick={() => handleEditAsegurado(asegurado)}
+                                                            className="text-blue-600 hover:text-blue-900 font-medium"
+                                                        >
+                                                            Editar
                                                         </button>
-                                                        <button onClick={() => handleDeleteAsegurado(asegurado.id)} className="text-red-600 hover:text-red-900">
-                                                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                            </svg>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="rounded-2xl bg-white p-8 shadow-xl text-center text-zinc-500">
-                                Usa el buscador para encontrar asegurados
-                            </div>
-                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
                     </div>
-
-                    {/* Sección Ubicaciones */}
-                    <div>
-                        {!selectedAsegurado ? (
-                            <div className="rounded-2xl bg-white p-12 shadow-xl text-center">
-                                <svg className="mx-auto h-16 w-16 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                                <p className="mt-4 text-zinc-500">Selecciona un asegurado</p>
-                            </div>
-                        ) : (
-                            <>
-                                {/* Detalles */}
-                                <div className="mb-6 rounded-2xl bg-white p-6 shadow-xl">
-                                    <h3 className="mb-4 text-lg font-semibold">Información del Asegurado</h3>
-                                    <div className="space-y-3">
-                                        <div><p className="text-sm text-zinc-500">Razón Social</p><p className="font-medium">{selectedAsegurado.razon_social}</p></div>
-                                        <div><p className="text-sm text-zinc-500">Identificación</p><p className="font-medium">{selectedAsegurado.identificacion}</p></div>
-                                        <div><p className="text-sm text-zinc-500">Nombre</p><p className="font-medium">{selectedAsegurado.nombre}</p></div>
-                                        {selectedAsegurado.direccion && <div><p className="text-sm text-zinc-500">Dirección</p><p className="font-medium">{selectedAsegurado.direccion}</p></div>}
-                                        {selectedAsegurado.telefono && <div><p className="text-sm text-zinc-500">Teléfono</p><p className="font-medium">{selectedAsegurado.telefono}</p></div>}
-                                        {selectedAsegurado.correo && <div><p className="text-sm text-zinc-500">Correo</p><p className="font-medium">{selectedAsegurado.correo}</p></div>}
+                ) : (
+                    /* VISTA DE FORMULARIO */
+                    <div className="mx-auto max-w-3xl space-y-8">
+                        {/* Formulario Asegurado */}
+                        <div className="rounded-2xl bg-white p-8 shadow-xl shadow-zinc-200/50">
+                            <h2 className="mb-6 text-2xl font-semibold text-zinc-800">
+                                {editingAsegurado ? 'Editar Asegurado' : 'Nuevo Asegurado'}
+                            </h2>
+                            {aseguradoFormError && (
+                                <div className="mb-6 rounded-lg bg-red-50 p-4 text-sm text-red-800 border border-red-200">
+                                    {aseguradoFormError}
+                                </div>
+                            )}
+                            <form onSubmit={handleSubmitAsegurado} className="space-y-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-zinc-700">Razón Social *</label>
+                                    <input type="text" required value={aseguradoFormData.razon_social}
+                                        onChange={(e) => setAseguradoFormData({ ...aseguradoFormData, razon_social: e.target.value })}
+                                        className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                                </div>
+                                <div className="grid gap-6 sm:grid-cols-2">
+                                    <div>
+                                        <label className="block text-sm font-medium text-zinc-700">Identificación *</label>
+                                        <input type="text" required value={aseguradoFormData.identificacion}
+                                            onChange={(e) => setAseguradoFormData({ ...aseguradoFormData, identificacion: e.target.value })}
+                                            className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-zinc-700">Nombre *</label>
+                                        <input type="text" required value={aseguradoFormData.nombre}
+                                            onChange={(e) => setAseguradoFormData({ ...aseguradoFormData, nombre: e.target.value })}
+                                            className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
                                     </div>
                                 </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-zinc-700">Correo</label>
+                                    <input type="email" value={aseguradoFormData.correo}
+                                        onChange={(e) => setAseguradoFormData({ ...aseguradoFormData, correo: e.target.value })}
+                                        className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                                </div>
+                                <div className="flex justify-end gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={handleSwitchToList}
+                                        className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmittingAsegurado}
+                                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 px-6 py-2 text-sm font-semibold text-white shadow-lg disabled:opacity-50"
+                                    >
+                                        {isSubmittingAsegurado ? 'Guardando...' : (editingAsegurado ? 'Actualizar Asegurado' : 'Crear Asegurado')}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
 
-                                {/* Ubicaciones */}
-                                <div className="mb-4 flex items-center justify-between">
-                                    <h3 className="text-xl font-semibold">Ubicaciones</h3>
+                        {/* Gestión de Ubicaciones (Solo visible si hay un asegurado seleccionado/creado) */}
+                        {selectedAsegurado && (
+                            <div className="rounded-2xl bg-white p-8 shadow-xl shadow-zinc-200/50">
+                                <div className="mb-6 flex items-center justify-between">
+                                    <h3 className="text-xl font-semibold text-zinc-800">Ubicaciones</h3>
                                     <button onClick={() => { setShowUbicacionForm(!showUbicacionForm); setModoUbicacion('select'); }}
                                         className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-br from-green-600 to-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-lg">
                                         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={showUbicacionForm ? "M6 18L18 6M6 6l12 12" : "M12 6v6m0 0v6m0-6h6m-6 0H6"} />
                                         </svg>
-                                        {showUbicacionForm ? 'Cancelar' : 'Nueva'}
+                                        {showUbicacionForm ? 'Cancelar' : 'Agregar Ubicación'}
                                     </button>
                                 </div>
 
                                 {showUbicacionForm && (
-                                    <div className="mb-6 rounded-2xl bg-white p-6 shadow-xl">
+                                    <div className="mb-8 rounded-xl bg-zinc-50 p-6 border border-zinc-200">
                                         {ubicacionFormError && <div className="mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-800 border border-red-200">{ubicacionFormError}</div>}
                                         <div className="mb-4 flex gap-2">
                                             <button type="button" onClick={() => setModoUbicacion('select')}
-                                                className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium ${modoUbicacion === 'select' ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-600'}`}>
-                                                Seleccionar
+                                                className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${modoUbicacion === 'select' ? 'bg-white text-green-700 shadow-sm ring-1 ring-green-200' : 'text-zinc-500 hover:text-zinc-700'}`}>
+                                                Seleccionar Existente
                                             </button>
                                             <button type="button" onClick={() => setModoUbicacion('manual')}
-                                                className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium ${modoUbicacion === 'manual' ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-600'}`}>
-                                                Nueva
+                                                className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${modoUbicacion === 'manual' ? 'bg-white text-green-700 shadow-sm ring-1 ring-green-200' : 'text-zinc-500 hover:text-zinc-700'}`}>
+                                                Crear Nueva
                                             </button>
                                         </div>
 
                                         {modoUbicacion === 'select' ? (
                                             <div className="max-h-60 overflow-y-auto space-y-2">
                                                 {todasUbicaciones.length === 0 ? (
-                                                    <p className="text-center py-8 text-zinc-500 text-sm">No hay ubicaciones. Crea una nueva.</p>
+                                                    <p className="text-center py-8 text-zinc-500 text-sm">No hay ubicaciones previas. Crea una nueva.</p>
                                                 ) : (
                                                     todasUbicaciones.map((ubicacion, idx) => (
                                                         <button key={idx} type="button" onClick={() => handleSelectExistingUbicacion(ubicacion)} disabled={isSubmittingUbicacion}
-                                                            className="w-full text-left p-3 rounded-lg border border-zinc-200 hover:border-green-500 hover:bg-green-50">
-                                                            <p className="font-medium">{ubicacion.ciudad}</p>
+                                                            className="w-full text-left p-3 rounded-lg bg-white border border-zinc-200 hover:border-green-500 hover:bg-green-50 transition-all">
+                                                            <p className="font-medium text-zinc-900">{ubicacion.ciudad}</p>
                                                             <p className="text-sm text-zinc-600">{ubicacion.pais}</p>
                                                         </button>
                                                     ))
@@ -448,42 +445,59 @@ function AseguradosContent() {
                                             </div>
                                         ) : (
                                             <form onSubmit={handleCreateUbicacion} className="space-y-4">
-                                                <div>
-                                                    <label className="block text-sm font-medium text-zinc-700">Ciudad *</label>
-                                                    <input type="text" required value={ubicacionFormData.ciudad}
-                                                        onChange={(e) => setUbicacionFormData({ ...ubicacionFormData, ciudad: e.target.value })}
-                                                        className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                                                <div className="grid gap-4 sm:grid-cols-2">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-zinc-700">Ciudad *</label>
+                                                        <input type="text" required value={ubicacionFormData.ciudad}
+                                                            onChange={(e) => setUbicacionFormData({ ...ubicacionFormData, ciudad: e.target.value })}
+                                                            className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-zinc-700">País *</label>
+                                                        <input type="text" required value={ubicacionFormData.pais}
+                                                            onChange={(e) => setUbicacionFormData({ ...ubicacionFormData, pais: e.target.value })}
+                                                            className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-zinc-700">País *</label>
-                                                    <input type="text" required value={ubicacionFormData.pais}
-                                                        onChange={(e) => setUbicacionFormData({ ...ubicacionFormData, pais: e.target.value })}
-                                                        className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                                                <div className="grid gap-4 sm:grid-cols-2">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-zinc-700">Dirección *</label>
+                                                        <input type="text" required value={ubicacionFormData.direccion}
+                                                            onChange={(e) => setUbicacionFormData({ ...ubicacionFormData, direccion: e.target.value })}
+                                                            className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-zinc-700">Teléfono *</label>
+                                                        <input type="tel" required value={ubicacionFormData.telefono}
+                                                            onChange={(e) => setUbicacionFormData({ ...ubicacionFormData, telefono: e.target.value })}
+                                                            className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                                                    </div>
                                                 </div>
                                                 <button type="submit" disabled={isSubmittingUbicacion}
-                                                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-green-600 to-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg disabled:opacity-50">
-                                                    {isSubmittingUbicacion ? 'Creando...' : 'Crear'}
+                                                    className="w-full rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-md hover:bg-green-700 disabled:opacity-50">
+                                                    {isSubmittingUbicacion ? 'Creando...' : 'Guardar Ubicación'}
                                                 </button>
                                             </form>
                                         )}
                                     </div>
                                 )}
 
-                                <div className="rounded-2xl bg-white shadow-xl overflow-hidden">
-                                    <div className="border-b border-zinc-200 px-4 py-3">
-                                        <h4 className="font-semibold">Ubicaciones Asignadas</h4>
+                                <div className="overflow-hidden rounded-xl border border-zinc-200">
+                                    <div className="bg-zinc-50 px-4 py-3 border-b border-zinc-200">
+                                        <h4 className="font-medium text-zinc-700">Ubicaciones Asignadas</h4>
                                     </div>
                                     {ubicaciones.length === 0 ? (
-                                        <div className="p-8 text-center text-zinc-500">Sin ubicaciones</div>
+                                        <div className="p-8 text-center text-zinc-500">Este asegurado no tiene ubicaciones asignadas</div>
                                     ) : (
                                         <div className="divide-y divide-zinc-200">
                                             {ubicaciones.map((ubi) => (
-                                                <div key={ubi.id} className="p-4 flex justify-between">
+                                                <div key={ubi.id} className="flex items-center justify-between p-4 hover:bg-zinc-50">
                                                     <div>
-                                                        <p className="font-medium">{ubi.ciudad}</p>
+                                                        <p className="font-medium text-zinc-900">{ubi.ciudad}</p>
                                                         <p className="text-sm text-zinc-600">{ubi.pais}</p>
+                                                        <p className="text-sm text-zinc-500">{ubi.direccion} - {ubi.telefono}</p>
                                                     </div>
-                                                    <button onClick={() => handleDeleteUbicacion(ubi.id)} className="text-red-600 hover:text-red-900">
+                                                    <button onClick={() => handleDeleteUbicacion(ubi.id)} className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded-full transition-colors">
                                                         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                         </svg>
@@ -493,10 +507,10 @@ function AseguradosContent() {
                                         </div>
                                     )}
                                 </div>
-                            </>
+                            </div>
                         )}
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );

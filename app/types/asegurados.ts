@@ -24,10 +24,14 @@ export interface Ubicacion {
   id: number;
   ciudad: string;
   pais: string;
+  direccion?: string;
+  telefono?: string;
   asegurado_id: number;
 }
 
 export interface CreateUbicacionData {
   ciudad: string;
   pais: string;
+  direccion?: string;
+  telefono?: string;
 }
