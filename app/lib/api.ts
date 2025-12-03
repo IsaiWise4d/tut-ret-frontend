@@ -200,12 +200,19 @@ export async function deleteAsegurado(id: number): Promise<void> {
 }
 
 export async function deleteUbicacion(aseguradoId: number, ubicacionId: number): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/asegurados/${aseguradoId}/ubicaciones/${ubicacionId}`, {
+  const response = await fetch(`${API_BASE_URL}/asegurados/ubicaciones/${ubicacionId}`, {
     method: 'DELETE',
     headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
-    throw new Error('Error al eliminar ubicación');
+    let errorMessage = 'Error al eliminar ubicación';
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.detail || errorMessage;
+    } catch {
+      // Si no se puede parsear el error, usar mensaje genérico
+    }
+    throw new Error(errorMessage);
   }
 }

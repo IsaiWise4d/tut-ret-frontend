@@ -3,9 +3,7 @@ export interface Asegurado {
   id: number;
   razon_social: string;
   identificacion: string;
-  nombre: string;
-  direccion?: string;
-  telefono?: string;
+  codigo: string;
   correo?: string;
   ubicaciones: Ubicacion[];
 }
@@ -13,9 +11,6 @@ export interface Asegurado {
 export interface CreateAseguradoData {
   razon_social: string;
   identificacion: string;
-  nombre: string;
-  direccion?: string;
-  telefono?: string;
   correo?: string;
 }
 

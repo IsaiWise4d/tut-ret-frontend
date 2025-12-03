@@ -21,7 +21,6 @@ Registra un nuevo asegurado en el sistema.
   {
     "razon_social": "Empresa S.A.",
     "identificacion": "1234567890",
-    "nombre": "Juan Pérez",
     "correo": "contacto@empresa.com"   // Opcional
   }
   ```
@@ -30,7 +29,7 @@ Registra un nuevo asegurado en el sistema.
   {
     "razon_social": "Empresa S.A.",
     "identificacion": "1234567890",
-    "nombre": "Juan Pérez",
+    "codigo": "001",
     "correo": "contacto@empresa.com",
     "id": 1,
     "ubicaciones": []
@@ -53,7 +52,7 @@ Obtiene la lista de todos los asegurados registrados.
     {
       "razon_social": "Empresa S.A.",
       "identificacion": "1234567890",
-      "nombre": "Juan Pérez",
+      "codigo": "001",
       "correo": "contacto@empresa.com",
       "id": 1,
       "ubicaciones": []
@@ -71,6 +70,28 @@ Obtiene el detalle de un asegurado específico.
 - **Respuesta Exitosa (200 OK)**: Retorna el objeto asegurado completo.
 - **Errores Comunes**:
   - `404 Not Found`: Si el asegurado no existe.
+
+### 1.4. Buscar Asegurados
+Busca asegurados por coincidencia parcial en razón social, código o identificación.
+
+- **Método**: `GET`
+- **URL**: `/search`
+- **Query Params**:
+  - `query`: Texto a buscar (coincidencia en razón social, código o identificación).
+- **Ejemplo**: `/search?query=Juan`
+- **Respuesta Exitosa (200 OK)**:
+  ```json
+  [
+    {
+      "razon_social": "Empresa S.A.",
+      "identificacion": "1234567890",
+      "codigo": "001",
+      "correo": "contacto@empresa.com",
+      "id": 1,
+      "ubicaciones": []
+    }
+  ]
+  ```
 
 ---
 
@@ -134,6 +155,16 @@ Obtiene todas las ubicaciones asociadas a un asegurado.
     }
   ]
   ```
+
+### 2.3. Eliminar Ubicación de un Asegurado
+Elimina una ubicación específica de un asegurado.
+
+- **Método**: `DELETE`
+- **URL**: `/ubicaciones/{ubicacion_id}`
+- **Ejemplo**: `/ubicaciones/5`
+- **Respuesta Exitosa (200 OK)**: Mensaje de confirmación
+- **Errores Comunes**:
+  - `404 Not Found`: Si la ubicación no existe.
 
 ---
 
