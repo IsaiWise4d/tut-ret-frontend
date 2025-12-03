@@ -200,7 +200,7 @@ export async function deleteAsegurado(id: number): Promise<void> {
 }
 
 export async function deleteUbicacion(aseguradoId: number, ubicacionId: number): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/asegurados/ubicaciones/${ubicacionId}`, {
+  const response = await fetch(`${API_BASE_URL}/asegurados/${aseguradoId}/ubicaciones/${ubicacionId}`, {
     method: 'DELETE',
     headers: getAuthHeaders(),
   });

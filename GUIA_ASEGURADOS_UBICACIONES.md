@@ -160,11 +160,11 @@ Obtiene todas las ubicaciones asociadas a un asegurado.
 Elimina una ubicación específica de un asegurado.
 
 - **Método**: `DELETE`
-- **URL**: `/ubicaciones/{ubicacion_id}`
-- **Ejemplo**: `/ubicaciones/5`
+- **URL**: `/{asegurado_id}/ubicaciones/{ubicacion_id}`
+- **Ejemplo**: `/1/ubicaciones/5`
 - **Respuesta Exitosa (200 OK)**: Mensaje de confirmación
 - **Errores Comunes**:
-  - `404 Not Found`: Si la ubicación no existe.
+  - `404 Not Found`: Si el asegurado o la ubicación no existe.
 
 ---
 
