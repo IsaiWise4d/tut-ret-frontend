@@ -323,6 +323,13 @@ export async function getNegocios(): Promise<Negocio[]> {
   return handleResponse<Negocio[]>(response);
 }
 
+export async function searchNegocios(query: string): Promise<Negocio[]> {
+  const response = await fetchWithAuth(`${API_BASE_URL}/negocios/search?q=${encodeURIComponent(query)}`, {
+    method: 'GET',
+  });
+  return handleResponse<Negocio[]>(response);
+}
+
 export async function createNegocio(data: CreateNegocioData): Promise<Negocio> {
   const response = await fetchWithAuth(`${API_BASE_URL}/negocios/`, {
     method: 'POST',

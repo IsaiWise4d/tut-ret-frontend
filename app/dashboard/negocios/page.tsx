@@ -37,31 +37,36 @@ function NegociosContent() {
     const [historyData, setHistoryData] = useState<NegocioHistory[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
 
+    // Search State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
+
     // Fetch and enrich data
+    const enrichNegocios = async (data: Negocio[]) => {
+        return Promise.all(data.map(async (n) => {
+            try {
+                // Fetch Asegurado Name
+                const asegurado = await getAsegurado(n.asegurado_id);
+                // Fetch Ubicacion Name
+                const ubicaciones = await getUbicaciones(n.asegurado_id);
+                const ubicacion = ubicaciones.find(u => u.id === n.ubicacion_id);
+
+                return {
+                    ...n,
+                    aseguradoNombre: asegurado.razon_social,
+                    ubicacionNombre: ubicacion ? `${ubicacion.ciudad} - ${ubicacion.direccion}` : 'Ubicación Desconocida'
+                };
+            } catch {
+                return { ...n, aseguradoNombre: 'Desconocido', ubicacionNombre: 'Desconocido' };
+            }
+        }));
+    };
+
     const fetchNegocios = async () => {
         setLoading(true);
         try {
             const data = await getNegocios();
-
-            // Enrich with names
-            const enriched: EnrichedNegocio[] = await Promise.all(data.map(async (n) => {
-                try {
-                    // Fetch Asegurado Name
-                    const asegurado = await getAsegurado(n.asegurado_id);
-                    // Fetch Ubicacion Name
-                    const ubicaciones = await getUbicaciones(n.asegurado_id);
-                    const ubicacion = ubicaciones.find(u => u.id === n.ubicacion_id);
-
-                    return {
-                        ...n,
-                        aseguradoNombre: asegurado.razon_social,
-                        ubicacionNombre: ubicacion ? `${ubicacion.ciudad} - ${ubicacion.direccion}` : 'Ubicación Desconocida'
-                    };
-                } catch {
-                    return { ...n, aseguradoNombre: 'Desconocido', ubicacionNombre: 'Desconocido' };
-                }
-            }));
-
+            const enriched = await enrichNegocios(data);
             setNegocios(enriched);
             setError(null);
         } catch (err: any) {
@@ -71,9 +76,53 @@ function NegociosContent() {
         }
     };
 
+    const handleSearch = async (query: string) => {
+        setSearchQuery(query);
+        setIsSearching(true);
+
+        // Debounce or immediate if empty logic can go here, but for now we search on effect or direct call
+        // Let's implement active searching:
+        try {
+            let data: Negocio[];
+            if (!query.trim()) {
+                data = await getNegocios();
+            } else {
+                // Import this dynamically or ensure it is imported at top
+                const { searchNegocios } = await import('@/app/lib/api');
+                data = await searchNegocios(query);
+            }
+
+            const enriched = await enrichNegocios(data);
+            setNegocios(enriched);
+        } catch (err) {
+            console.error(err);
+            // If search fails, maybe just show empty or previous?
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    // Debounce effect for search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            handleSearch(searchQuery);
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    // Initial load
+    useEffect(() => {
+        // Only fetch initially if not searching (though search effect will trigger with empty string too)
+        // fetchNegocios(); 
+        // We let the headers effect below handle initial fetch if we want, OR just rely on search effect with empty string
+    }, []);
+
+    // However, handling tab change might need refetch?
     useEffect(() => {
         if (activeTab === 'list') {
-            fetchNegocios();
+            // Reset search? Or keep it? Let's keep it if user typed something
+            handleSearch(searchQuery);
         }
     }, [activeTab]);
 
@@ -125,8 +174,8 @@ function NegociosContent() {
                         <button
                             onClick={() => handleTabChange('list')}
                             className={`rounded-md px-4 py-2 text-sm font-medium transition-all ${activeTab === 'list'
-                                    ? 'bg-white text-blue-600 shadow-sm'
-                                    : 'text-zinc-500 hover:text-zinc-700'
+                                ? 'bg-white text-blue-600 shadow-sm'
+                                : 'text-zinc-500 hover:text-zinc-700'
                                 }`}
                         >
                             Listado de Negocios
@@ -134,8 +183,8 @@ function NegociosContent() {
                         <button
                             onClick={() => handleTabChange('create')}
                             className={`rounded-md px-4 py-2 text-sm font-medium transition-all ${activeTab === 'create'
-                                    ? 'bg-white text-blue-600 shadow-sm'
-                                    : 'text-zinc-500 hover:text-zinc-700'
+                                ? 'bg-white text-blue-600 shadow-sm'
+                                : 'text-zinc-500 hover:text-zinc-700'
                                 }`}
                         >
                             {editingNegocio ? 'Editar Negocio' : 'Crear Nuevo Negocio'}
@@ -151,6 +200,28 @@ function NegociosContent() {
                                 {error}
                             </div>
                         )}
+
+                        <div className="mb-6 flex gap-4">
+                            <div className="relative flex-1 max-w-md">
+                                <input
+                                    type="text"
+                                    placeholder="Buscar por código o cliente..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full rounded-lg border-zinc-300 pl-10 pr-4 py-2 focus:border-blue-500 focus:ring-blue-500 shadow-sm"
+                                />
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </div>
+                                {isSearching && (
+                                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
 
                         <div className="rounded-2xl bg-white shadow-xl shadow-zinc-200/50 overflow-hidden">
                             <div className="overflow-x-auto">
