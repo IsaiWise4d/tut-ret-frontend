@@ -99,6 +99,7 @@ function NegociosContent() {
             // If search fails, maybe just show empty or previous?
         } finally {
             setIsSearching(false);
+            setLoading(false);
         }
     };
 
