@@ -1,5 +1,6 @@
 import { LoginResponse, User, CreateUserData, ApiResponse } from '@/app/types/auth';
 import { Asegurado, CreateAseguradoData, Ubicacion, CreateUbicacionData } from '@/app/types/asegurados';
+import { Negocio, CreateNegocioData, UpdateNegocioData, NegocioHistory } from '@/app/types/negocios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -199,6 +200,15 @@ export async function deleteAsegurado(id: number): Promise<void> {
   }
 }
 
+export async function searchAsegurados(query: string): Promise<Asegurado[]> {
+  const response = await fetch(`${API_BASE_URL}/asegurados/search?query=${encodeURIComponent(query)}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  return handleResponse<Asegurado[]>(response);
+}
+
 export async function deleteUbicacion(aseguradoId: number, ubicacionId: number): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/asegurados/${aseguradoId}/ubicaciones/${ubicacionId}`, {
     method: 'DELETE',
@@ -215,4 +225,39 @@ export async function deleteUbicacion(aseguradoId: number, ubicacionId: number):
     }
     throw new Error(errorMessage);
   }
+}
+
+// NEGOCIOS
+export async function getNegocios(): Promise<Negocio[]> {
+  const response = await fetch(`${API_BASE_URL}/negocios/`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+  return handleResponse<Negocio[]>(response);
+}
+
+export async function createNegocio(data: CreateNegocioData): Promise<Negocio> {
+  const response = await fetch(`${API_BASE_URL}/negocios/`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse<Negocio>(response);
+}
+
+export async function updateNegocio(id: number, data: UpdateNegocioData): Promise<Negocio> {
+  const response = await fetch(`${API_BASE_URL}/negocios/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse<Negocio>(response);
+}
+
+export async function getNegocioHistory(id: number): Promise<NegocioHistory[]> {
+  const response = await fetch(`${API_BASE_URL}/negocios/${id}/history`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+  return handleResponse<NegocioHistory[]>(response);
 }
