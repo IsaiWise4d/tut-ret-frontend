@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Negocio, NegocioHistory } from '@/app/types/negocios';
-import { getNegocios, getNegocioHistory, getAsegurado, getUbicaciones } from '@/app/lib/api';
+import { Asegurado, Ubicacion } from '@/app/types/asegurados';
+import { getNegocios, getNegocioHistory, getAsegurados } from '@/app/lib/api';
 import NegocioForm from '@/app/components/forms/NegocioForm';
 import NegocioHistoryModal from '@/app/components/NegocioHistoryModal';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
@@ -25,7 +26,8 @@ function NegociosContent() {
     const [activeTab, setActiveTab] = useState<'list' | 'create'>('list');
 
     // Data States
-    const [negocios, setNegocios] = useState<EnrichedNegocio[]>([]);
+    const [allNegocios, setAllNegocios] = useState<EnrichedNegocio[]>([]); // Copy of all data
+    const [negocios, setNegocios] = useState<EnrichedNegocio[]>([]); // Displayed data (filtered)
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -39,97 +41,78 @@ function NegociosContent() {
 
     // Search State
     const [searchQuery, setSearchQuery] = useState('');
-    const [isSearching, setIsSearching] = useState(false);
 
-    // Fetch and enrich data
-    const enrichNegocios = async (data: Negocio[]) => {
-        return Promise.all(data.map(async (n) => {
-            try {
-                // Fetch Asegurado Name
-                const asegurado = await getAsegurado(n.asegurado_id);
-                // Fetch Ubicacion Name
-                const ubicaciones = await getUbicaciones(n.asegurado_id);
-                const ubicacion = ubicaciones.find(u => u.id === n.ubicacion_id);
+    // Fetch and enrich data - OPTIMIZED: Loads everything once
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            // Parallel fetch
+            const [negociosData, aseguradosData] = await Promise.all([
+                getNegocios(),
+                getAsegurados()
+            ]);
+
+            // Create lookup maps for performance
+            const aseguradosMap = new Map<number, Asegurado>();
+            const ubicacionesMap = new Map<number, Ubicacion>(); // Key: ubicacionId, Value: Ubicacion
+
+            aseguradosData.forEach(a => {
+                aseguradosMap.set(a.id, a);
+                if (a.ubicaciones) {
+                    a.ubicaciones.forEach(u => ubicacionesMap.set(u.id, u));
+                }
+            });
+
+            // Enrich all negocios in memory
+            const enriched = negociosData.map(n => {
+                const asegurado = aseguradosMap.get(n.asegurado_id);
+                // We look up location directly if IDs are unique across interactions, 
+                // OR we check the specific asegurado's locations if we want to be stricter.
+                // Assuming global unique IDs for locations simplifies this:
+                const ubicacion = ubicacionesMap.get(n.ubicacion_id);
 
                 return {
                     ...n,
-                    aseguradoNombre: asegurado.razon_social,
+                    aseguradoNombre: asegurado ? asegurado.razon_social : 'Desconocido',
                     ubicacionNombre: ubicacion ? `${ubicacion.ciudad} - ${ubicacion.direccion}` : 'Ubicación Desconocida'
                 };
-            } catch {
-                return { ...n, aseguradoNombre: 'Desconocido', ubicacionNombre: 'Desconocido' };
-            }
-        }));
-    };
+            });
 
-    const fetchNegocios = async () => {
-        setLoading(true);
-        try {
-            const data = await getNegocios();
-            const enriched = await enrichNegocios(data);
-            setNegocios(enriched);
+            setAllNegocios(enriched);
+            setNegocios(enriched); // Initially show all
             setError(null);
         } catch (err: any) {
-            setError(err.message || 'Error al cargar negocios');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleSearch = async (query: string) => {
-        setSearchQuery(query);
-        setIsSearching(true);
-
-        // Debounce or immediate if empty logic can go here, but for now we search on effect or direct call
-        // Let's implement active searching:
-        try {
-            let data: Negocio[];
-            if (!query.trim()) {
-                data = await getNegocios();
-            } else {
-                // Import this dynamically or ensure it is imported at top
-                const { searchNegocios } = await import('@/app/lib/api');
-                data = await searchNegocios(query);
-            }
-
-            const enriched = await enrichNegocios(data);
-            setNegocios(enriched);
-        } catch (err) {
             console.error(err);
-            // If search fails, maybe just show empty or previous?
+            setError(err.message || 'Error al cargar datos');
         } finally {
-            setIsSearching(false);
             setLoading(false);
         }
     };
 
-    // Debounce effect for search
+    // Initial Load
     useEffect(() => {
-        const timer = setTimeout(() => {
-            handleSearch(searchQuery);
-        }, 500);
-
-        return () => clearTimeout(timer);
-    }, [searchQuery]);
-
-    // Initial load
-    useEffect(() => {
-        // Only fetch initially if not searching (though search effect will trigger with empty string too)
-        // fetchNegocios(); 
-        // We let the headers effect below handle initial fetch if we want, OR just rely on search effect with empty string
+        loadData();
     }, []);
 
-    // However, handling tab change might need refetch?
+    // Client-side Search Effect
     useEffect(() => {
-        if (activeTab === 'list') {
-            // Reset search? Or keep it? Let's keep it if user typed something
-            handleSearch(searchQuery);
+        if (!searchQuery.trim()) {
+            setNegocios(allNegocios);
+            return;
         }
-    }, [activeTab]);
+
+        const query = searchQuery.toLowerCase();
+        const filtered = allNegocios.filter(n =>
+            n.codigo.toLowerCase().includes(query) ||
+            (n.aseguradoNombre && n.aseguradoNombre.toLowerCase().includes(query))
+        );
+        setNegocios(filtered);
+    }, [searchQuery, allNegocios]);
 
     const handleCreateSuccess = () => {
         setActiveTab('list');
         setEditingNegocio(undefined);
+        loadData(); // Reload to get new data
     };
 
     const handleEdit = (negocio: Negocio) => {
@@ -141,9 +124,9 @@ function NegociosContent() {
     const handleTabChange = (tab: 'list' | 'create') => {
         setActiveTab(tab);
         if (tab === 'list') {
-            setEditingNegocio(undefined); // Clear edit state when going back to list manually
+            setEditingNegocio(undefined);
         } else {
-            setEditingNegocio(undefined); // Ensure we start fresh create if clicking tab directly
+            setEditingNegocio(undefined);
         }
     };
 
@@ -216,11 +199,6 @@ function NegociosContent() {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                     </svg>
                                 </div>
-                                {isSearching && (
-                                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
-                                    </div>
-                                )}
                             </div>
                         </div>
 
@@ -251,7 +229,7 @@ function NegociosContent() {
                                         ) : negocios.length === 0 ? (
                                             <tr>
                                                 <td colSpan={6} className="px-6 py-12 text-center text-sm text-zinc-500">
-                                                    No hay negocios registrados. Seleccione &quot;Crear Nuevo Negocio&quot; para comenzar.
+                                                    {searchQuery ? 'No se encontraron negocios con tu búsqueda.' : 'No hay negocios registrados. Seleccione "Crear Nuevo Negocio" para comenzar.'}
                                                 </td>
                                             </tr>
                                         ) : (
