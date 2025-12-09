@@ -1,119 +1,109 @@
-# Guía de Autenticación para Frontend
+# Guía de Implementación de Autenticación con Refresh Token (Frontend)
 
-Esta guía explica cómo interactuar con el sistema de autenticación del backend (API) desde el frontend.
+Esta guía explica cómo manejar el flujo de autenticación utilizando **Access Tokens** (corta duración) y **Refresh Tokens** (larga duración) para mantener la sesión del usuario activa de forma segura y transparente.
 
-## Resumen
-El sistema utiliza **JWT (JSON Web Tokens)**.
-1. El usuario se loguea y recibe un `access_token`.
-2. El frontend guarda este token (ej. en `localStorage` o `cookies`).
-3. Para acceder a rutas protegidas, el frontend debe enviar este token en los **Headers** de cada petición.
+## Conceptos Clave
 
----
+1.  **Access Token**: Es el token que se envía en el header `Authorization: Bearer <token>` de cada petición. Tiene una vida corta (ej. 30 minutos).
+2.  **Refresh Token**: Es un token especial que **solo** sirve para obtener un nuevo Access Token cuando el actual ha expirado. Tiene una vida larga (ej. 1 día).
 
-## 1. Login (Iniciar Sesión)
+## Flujo de Autenticación
 
-Para obtener el token, debes enviar las credenciales del usuario.
+### 1. Login Inicial
+Cuando el usuario inicia sesión, el backend devuelve ambos tokens.
 
-- **Endpoint:** `POST /api/v1/auth/login`
-- **Content-Type:** `application/x-www-form-urlencoded` (Form Data estándar de OAuth2)
-- **Body:**
-  - `username`: (string) El nombre de usuario.
-  - `password`: (string) La contraseña.
+- **Endpoint**: `POST /api/v1/auth/login`
+- **Respuesta**:
+  ```json
+  {
+    "access_token": "eyJhbGciOiJIUzI1Ni...",
+    "refresh_token": "eyJhbGciOiJIUzI1Ni...",
+    "token_type": "bearer"
+  }
+  ```
+- **Acción Frontend**: Guardar **ambos** tokens en el almacenamiento seguro (ej. `localStorage`, `sessionStorage` o Cookies HttpOnly).
 
-### Ejemplo de Petición (JavaScript / Fetch)
+### 2. Peticiones Normales
+En cada petición al backend, envía el `access_token` en el header.
 
 ```javascript
-async function login(username, password) {
-  const formData = new URLSearchParams();
-  formData.append('username', username);
-  formData.append('password', password);
-
-  try {
-    const response = await fetch('http://localhost:8000/api/v1/auth/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error('Error en login');
-    }
-
-    const data = await response.json();
-    console.log('Login exitoso:', data);
-    
-    // Guardar el token para usarlo después
-    localStorage.setItem('token', data.access_token);
-    return data;
-  } catch (error) {
-    console.error(error);
-  }
+headers: {
+  Authorization: `Bearer ${accessToken}`
 }
 ```
 
-### Respuesta Exitosa (200 OK)
-```json
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "token_type": "bearer"
-}
-```
+### 3. Manejo de Expiración (Interceptor)
+Cuando el `access_token` expira, el backend responderá con un error **401 Unauthorized**. El frontend debe interceptar este error y tratar de renovar el token automáticamente **antes** de redirigir al usuario al login.
 
----
+#### Algoritmo Sugerido (Ejemplo con Axios)
 
-## 2. Acceder a Rutas Protegidas
+1.  Configura un interceptor de respuesta (`axios.interceptors.response`).
+2.  Si la respuesta es exitosa, retórnala tal cual.
+3.  Si la respuesta es un error **401**:
+    a.  Verifica si ya estás intentando renovar el token (para evitar bucles).
+    b.  Si no, llama al endpoint de renovación: `POST /api/v1/auth/refresh`.
+    c.  Envía el `refresh_token` como query param: `?refresh_token=<tu_refresh_token>`.
+    d.  **Si la renovación es exitosa**:
+        - Guarda el nuevo `access_token`.
+        - Actualiza el header de autorización de la petición original fallida.
+        - Reintenta la petición original.
+    e.  **Si la renovación falla** (el refresh token también expiró o es inválido):
+        - Borra los tokens locales.
+        - Redirige al usuario a la pantalla de Login.
 
-Una vez que tienes el `access_token`, debes incluirlo en el header `Authorization` de tus peticiones a rutas privadas (como obtener usuarios, crear registros, etc.).
+### 4. Endpoint de Renovación
+- **Método**: `POST`
+- **URL**: `/api/v1/auth/refresh`
+- **Query Param**: `refresh_token` (String)
+- **Respuesta Exitosa (200 OK)**:
+  ```json
+  {
+    "access_token": "eyJhbGciOiJIUzI1Ni... (NUEVO)",
+    "refresh_token": "eyJhbGciOiJIUzI1Ni... (MISMO O NUEVO)",
+    "token_type": "bearer"
+  }
+  ```
 
-- **Header:** `Authorization: Bearer <TU_TOKEN>`
-
-### Ejemplo de Petición Autenticada
+## Ejemplo de Código (Conceptual)
 
 ```javascript
-async function getUsers() {
-  const token = localStorage.getItem('token');
+import axios from 'axios';
 
-  if (!token) {
-    console.log('No hay token, el usuario no está logueado');
-    return;
-  }
+// Instancia de axios
+const api = axios.create({ baseURL: 'http://localhost:8000/api/v1' });
 
-  try {
-    const response = await fetch('http://localhost:8000/api/v1/users/', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`, // IMPORTANTE: Espacio después de Bearer
-        'Content-Type': 'application/json'
+// Interceptor
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Si el error es 401 y no hemos reintentado aún
+    if (error.response.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        const refreshToken = localStorage.getItem('refresh_token');
+        
+        // Llamada para renovar token
+        const { data } = await axios.post(`http://localhost:8000/api/v1/auth/refresh?refresh_token=${refreshToken}`);
+
+        // Guardar nuevo token
+        localStorage.setItem('access_token', data.access_token);
+
+        // Actualizar header y reintentar
+        originalRequest.headers['Authorization'] = 'Bearer ' + data.access_token;
+        return api(originalRequest);
+      } catch (refreshError) {
+        // Si falla el refresh, logout forzado
+        console.error("Sesión expirada", refreshError);
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
       }
-    });
-
-    if (response.status === 401) {
-      console.log('Token inválido o expirado');
-      // Aquí podrías redirigir al login
-      return;
     }
-
-    const data = await response.json();
-    console.log('Usuarios:', data);
-  } catch (error) {
-    console.error(error);
+    return Promise.reject(error);
   }
-}
+);
 ```
-
----
-
-## 3. Endpoints Disponibles
-
-### Usuarios (Requiere ser Admin)
-- `GET /api/v1/users/`: Listar todos los usuarios.
-- `POST /api/v1/users/`: Crear un nuevo usuario.
-- `GET /api/v1/users/{id}`: Obtener un usuario por ID.
-- `PUT /api/v1/users/{id}`: Actualizar un usuario.
-- `DELETE /api/v1/users/{id}`: Eliminar un usuario.
-
-### Errores Comunes
-- **401 Unauthorized**: No enviaste el token, el token expiró o es inválido.
-- **403 Forbidden**: Tienes un token válido, pero tu usuario no tiene permisos para hacer esa acción (ej. un usuario normal intentando crear otro usuario).
