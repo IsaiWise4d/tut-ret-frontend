@@ -107,6 +107,31 @@ function DashboardContent() {
                         </div>
                     </Link>
 
+                    {/* Módulo Slips Reaseguro */}
+                    <Link
+                        href="/dashboard/slips"
+                        className="group relative overflow-hidden rounded-2xl bg-white p-8 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+                    >
+                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/5 to-cyan-600/5 opacity-0 transition-opacity group-hover:opacity-100" />
+                        <div className="relative">
+                            <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                            </div>
+                            <h3 className="mb-2 text-xl font-bold text-zinc-900">Slips de Reaseguro</h3>
+                            <p className="text-zinc-600">
+                                Gestión de contratos, coberturas y reaseguro.
+                            </p>
+                            <div className="mt-6 flex items-center text-sm font-medium text-indigo-600 group-hover:text-indigo-700">
+                                Ir a slips
+                                <svg className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                </svg>
+                            </div>
+                        </div>
+                    </Link>
+
                     {/* Módulo Usuarios - Solo SUPER_ADMIN */}
                     {user?.role === 'SUPER_ADMIN' && (
                         <Link

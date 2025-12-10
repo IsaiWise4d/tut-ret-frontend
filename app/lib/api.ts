@@ -2,6 +2,8 @@ import { LoginResponse, User, CreateUserData, ApiResponse } from '@/app/types/au
 import { Asegurado, CreateAseguradoData, Ubicacion, CreateUbicacionData } from '@/app/types/asegurados';
 import { Negocio, CreateNegocioData, UpdateNegocioData, NegocioHistory } from '@/app/types/negocios';
 
+import { Slip, CreateSlipData, UpdateSlipData } from '@/app/types/slips';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // Helper para obtener el token
@@ -42,7 +44,19 @@ async function handleResponse<T>(response: Response): Promise<T> {
     let errorMessage = 'Error en la petición';
     try {
       const errorData = await response.json();
-      errorMessage = errorData.detail || errorMessage;
+      if (errorData.detail) {
+        if (Array.isArray(errorData.detail)) {
+          // Si es un array de errores (validación), los formateamos
+          errorMessage = errorData.detail
+            .map((err: any) => {
+              const field = err.loc ? err.loc[err.loc.length - 1] : '';
+              return field ? `${field}: ${err.msg}` : err.msg;
+            })
+            .join(', ');
+        } else {
+          errorMessage = errorData.detail;
+        }
+      }
     } catch {
       // Si no se puede parsear el error, usar mensaje genérico
     }
@@ -269,3 +283,104 @@ export async function getNegocioHistory(id: number): Promise<NegocioHistory[]> {
   });
   return handleResponse<NegocioHistory[]>(response);
 }
+
+// SLIPS
+export async function getSlips(): Promise<Slip[]> {
+  const response = await fetch(`${API_BASE_URL}/slips/`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+  return handleResponse<Slip[]>(response);
+}
+
+export async function getSlip(id: number): Promise<Slip> {
+  const response = await fetch(`${API_BASE_URL}/slips/${id}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+  return handleResponse<Slip>(response);
+}
+
+export async function createSlip(data: CreateSlipData): Promise<Slip> {
+  const response = await fetch(`${API_BASE_URL}/slips/`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse<Slip>(response);
+}
+
+export async function updateSlip(id: number, data: UpdateSlipData): Promise<Slip> {
+  const response = await fetch(`${API_BASE_URL}/slips/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse<Slip>(response);
+}
+
+export async function deleteSlip(id: number): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/slips/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  
+  if (!response.ok) {
+     let errorMessage = 'Error al eliminar slip';
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.detail || errorMessage;
+    } catch { }
+    throw new Error(errorMessage);
+  }
+}
+
+export async function generateSlipPdf(id: number, retry = true): Promise<Blob> {
+  const response = await fetch(`${API_BASE_URL}/slips/${id}/pdf`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    let errorMessage = 'Error al generar el PDF';
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.detail || errorMessage;
+
+      // Auto-fix logic for missing limite_indemnizacion
+      if (retry && errorMessage.includes('limite_indemnizacion')) {
+        try {
+          const slip = await getSlip(id);
+          // Check if we can fix it
+          if (slip.datos_json && slip.datos_json.limite_indemnizacion_valor !== undefined) {
+            const newJson = {
+              ...slip.datos_json,
+              limite_indemnizacion: slip.datos_json.limite_indemnizacion_valor
+            };
+
+            // Construct full update data for PUT
+            const updateData: UpdateSlipData = {
+              tipo_slip: slip.tipo_slip,
+              nombre_asegurado: slip.nombre_asegurado,
+              vigencia_inicio: slip.vigencia_inicio,
+              vigencia_fin: slip.vigencia_fin,
+              estado: slip.estado,
+              negocio_id: slip.negocio_id,
+              datos_json: newJson
+            };
+
+            await updateSlip(id, updateData);
+            // Retry recursively, but disable further retries
+            return generateSlipPdf(id, false);
+          }
+        } catch (fixError) {
+          console.error("Failed to auto-fix slip:", fixError);
+        }
+      }
+    } catch { }
+    throw new Error(errorMessage);
+  }
+
+  return response.blob();
+}
+

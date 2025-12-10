@@ -1,0 +1,78 @@
+// TIPO SLIP
+// Definiciones basadas en GUIA_MODULO_SLIPS.md
+
+export interface Slip {
+    id: number;
+    numero_slip: string;
+    tipo_slip: 'CLAIMS_MADE' | 'OCURRENCIA' | 'HIBRIDO';
+    nombre_asegurado: string;
+    vigencia_inicio: string; // YYYY-MM-DD
+    vigencia_fin: string;    // YYYY-MM-DD
+    estado: 'Cotizacion' | 'Aprobado' | 'Rechazado';
+    negocio_id?: number | null;
+    datos_json: SlipDataJson;
+    created_at?: string;
+    updated_at?: string;
+}
+
+// Estructura anidada compleja (datos_json)
+export interface SlipDataJson {
+    reasegurado: {
+        nombre: string;
+        direccion: string;
+    };
+    asegurado: {
+        razon_social: string;
+        identificacion_nit: string;
+        ubicacion: string;
+    };
+    fecha_inicio: string;
+    fecha_fin: string;
+    tipo_cobertura: 'CLAIMS_MADE' | 'OCURRENCIA' | 'HIBRIDO';
+    retroactividad?: {
+        anios: string;
+        fecha_inicio?: string;
+        fecha_fin?: string;
+    };
+    gastos_defensa?: {
+        porcentaje_limite: number;
+        sublimite_evento_cop: number;
+    };
+    limite_indemnizacion_valor: number;
+    limite_indemnizacion?: number; // Added for backend compatibility
+    prima_anual_valor: number;
+    deducibles: {
+        porcentaje_valor_perdida: number;
+        minimo_cop: number;
+        gastos_defensa_texto: string;
+    };
+    descuentos?: {
+        porcentaje_total: number;
+        porcentaje_comision_cedente: number;
+        porcentaje_intermediario: number;
+    };
+    impuestos_nombre_reasegurador?: string;
+    retencion_cedente?: {
+        porcentaje?: number;
+        base?: number;
+    };
+    respaldo_reaseguro?: {
+        porcentaje: number;
+        base: number;
+    };
+    garantia_pago_primas_dias: number;
+    clausula_intermediario?: string;
+}
+
+// Payload para Crear/Actualizar
+export interface CreateSlipData {
+    tipo_slip: string;
+    nombre_asegurado: string;
+    vigencia_inicio: string;
+    vigencia_fin: string;
+    estado?: string;
+    negocio_id?: number | null;
+    datos_json: SlipDataJson;
+}
+
+export interface UpdateSlipData extends Partial<CreateSlipData> {}
