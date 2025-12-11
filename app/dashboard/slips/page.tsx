@@ -58,13 +58,13 @@ function SlipsContent() {
         }
     };
 
-    const handleGeneratePdf = async (id: number) => {
+    const handleGeneratePdf = async (slip: Slip) => {
         try {
-            const blob = await generateSlipPdf(id);
+            const blob = await generateSlipPdf(slip.id);
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `slip-${id}.pdf`;
+            a.download = `slip-${slip.id}-${slip.numero_slip}.pdf`;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
@@ -152,7 +152,7 @@ function SlipsContent() {
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                     <button
-                                                        onClick={() => handleGeneratePdf(slip.id)}
+                                                        onClick={() => handleGeneratePdf(slip)}
                                                         className="text-purple-600 hover:text-purple-900 mr-4 font-semibold"
                                                         title="Generar PDF"
                                                     >
