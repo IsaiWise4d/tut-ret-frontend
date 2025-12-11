@@ -29,6 +29,10 @@ export interface SlipDataJson {
     fecha_inicio: string;
     fecha_fin: string;
     tipo_cobertura: 'CLAIMS_MADE' | 'OCURRENCIA' | 'HIBRIDO';
+    base_cobertura_hibrido?: {
+        anios: string;
+        fecha: string;
+    };
     retroactividad?: {
         anios: string;
         fecha_inicio?: string;

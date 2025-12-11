@@ -25,6 +25,7 @@ const initialSlipData: CreateSlipData = {
         fecha_inicio: '',
         fecha_fin: '',
         tipo_cobertura: 'CLAIMS_MADE',
+        base_cobertura_hibrido: { anios: '', fecha: '' },
         retroactividad: { anios: '', fecha_inicio: '', fecha_fin: '' },
         gastos_defensa: { porcentaje_limite: 0, sublimite_evento_cop: 0 },
         limite_indemnizacion_valor: 0,
@@ -341,6 +342,11 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
             if (!finalData.datos_json.retroactividad.fecha_fin) delete finalData.datos_json.retroactividad.fecha_fin;
         }
 
+        // Clean up base_cobertura_hibrido if tipo is not HIBRIDO
+        if (formData.tipo_slip !== 'HIBRIDO') {
+            delete finalData.datos_json.base_cobertura_hibrido;
+        }
+
         try {
             if (initialData) {
                 await api.updateSlip(initialData.id, finalData);
@@ -459,6 +465,23 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                             <option value="HIBRIDO">Híbrido</option>
                                         </select>
                                     </div>
+                                    {formData.tipo_slip === 'HIBRIDO' && (
+                                        <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 bg-blue-50 p-4 rounded-xl border border-blue-200">
+                                            <Input
+                                                label="Años (Base Cobertura Híbrido)"
+                                                value={formData.datos_json.base_cobertura_hibrido?.anios || ''}
+                                                onChange={(v: string) => handleJsonChange('base_cobertura_hibrido', 'anios', v)}
+                                                placeholder="Ej. 5"
+                                            />
+                                            <Input
+                                                type="date"
+                                                label="Fecha (Base Cobertura Híbrido)"
+                                                value={formData.datos_json.base_cobertura_hibrido?.fecha || ''}
+                                                onChange={(v: string) => handleJsonChange('base_cobertura_hibrido', 'fecha', v)}
+                                                icon={Icons.Calendar}
+                                            />
+                                        </div>
+                                    )}
                                     <Input
                                         label="Nombre Asegurado (Etiqueta)"
                                         value={formData.nombre_asegurado}
