@@ -80,7 +80,7 @@ function SlipsContent() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 px-4 py-12 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-7xl">
+            <div className={viewMode === 'form' ? 'mx-auto w-full' : 'mx-auto max-w-7xl'}>
                 {/* Header */}
                 <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                     <div>
@@ -179,7 +179,7 @@ function SlipsContent() {
                         )}
                     </div>
                 ) : (
-                    <div className="max-w-4xl mx-auto">
+                    <div className="w-full">
                         <SlipForm
                             initialData={editingSlip}
                             onSuccess={handleFormSuccess}

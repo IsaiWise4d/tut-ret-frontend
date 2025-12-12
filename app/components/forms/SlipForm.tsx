@@ -208,7 +208,7 @@ function NegocioSearchInput({ selectedNegocioId, onSelect }: NegocioSearchInputP
 }
 
 // Reusable Components (Moved outside SlipForm)
-const Input = ({ label, value, onChange, type = "text", required = false, icon: Icon, placeholder, disabled = false }: any) => (
+const Input = ({ label, value, onChange, type = "text", required = false, icon: Icon, placeholder, disabled = false, min, max, step }: any) => (
     <div className="group">
         <label className="block text-sm font-medium text-zinc-700 mb-1.5">{label} {required && <span className="text-red-500">*</span>}</label>
         <div className="relative">
@@ -225,6 +225,9 @@ const Input = ({ label, value, onChange, type = "text", required = false, icon: 
                 onFocus={(e) => type === 'number' && e.target.select()}
                 placeholder={placeholder}
                 disabled={disabled}
+                min={min}
+                max={max}
+                step={step}
                 className={`w-full rounded-xl border-zinc-200 bg-zinc-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 py-2.5 ${Icon ? 'pl-10' : 'px-4'} ${disabled ? 'opacity-60 cursor-not-allowed bg-zinc-100 text-zinc-500' : ''}`}
             />
         </div>
@@ -362,12 +365,66 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
     };
 
     const validateStep = (currentStep: number) => {
+        const missing: string[] = [];
+
+        const isNonEmpty = (v: unknown) => typeof v === 'string' && v.trim().length > 0;
+        const isDate = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+        const isPositive = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v > 0;
+        const isPercent = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= 100;
+
         if (currentStep === 1) {
-            if (!formData.tipo_slip) return "El tipo de slip es requerido";
-            if (!formData.nombre_asegurado) return "El nombre del asegurado es requerido";
-            if (!formData.vigencia_inicio) return "La fecha de inicio es requerida";
-            if (!formData.vigencia_fin) return "La fecha de fin es requerida";
+            if (!isNonEmpty(formData.tipo_slip)) missing.push('Tipo de Slip');
+            if (!isNonEmpty(formData.nombre_asegurado)) missing.push('Nombre Asegurado');
+            if (!isDate(formData.vigencia_inicio)) missing.push('Vigencia Inicio');
+            if (!isDate(formData.vigencia_fin)) missing.push('Vigencia Fin');
+
+            if (formData.tipo_slip === 'HIBRIDO') {
+                if (!isNonEmpty(formData.datos_json.base_cobertura_hibrido?.anios)) missing.push('Años (Base Cobertura Híbrido)');
+                if (!isDate(formData.datos_json.base_cobertura_hibrido?.fecha)) missing.push('Fecha (Base Cobertura Híbrido)');
+            }
         }
+
+        if (currentStep === 2) {
+            if (!isNonEmpty(formData.datos_json.asegurado.razon_social)) missing.push('Razón Social');
+            if (!isNonEmpty(formData.datos_json.asegurado.identificacion_nit)) missing.push('NIT / Identificación');
+            if (!isNonEmpty(formData.datos_json.asegurado.ubicacion)) missing.push('Ubicación');
+            if (!isNonEmpty(formData.datos_json.reasegurado.nombre)) missing.push('Nombre Reaseguradora');
+            if (!isNonEmpty(formData.datos_json.reasegurado.direccion)) missing.push('Dirección Reaseguradora');
+        }
+
+        if (currentStep === 3) {
+            if (!isNonEmpty(formData.datos_json.retroactividad?.anios)) missing.push('Retroactividad (Años)');
+            if (!isDate(formData.datos_json.retroactividad?.fecha_inicio)) missing.push('Retroactividad (Fecha Inicio)');
+            if (!isDate(formData.datos_json.retroactividad?.fecha_fin)) missing.push('Retroactividad (Fecha Fin)');
+
+            if (!isPercent(formData.datos_json.gastos_defensa?.porcentaje_limite)) missing.push('Gastos de Defensa (% Límite: 1-100)');
+            if (!isPositive(formData.datos_json.gastos_defensa?.sublimite_evento_cop)) missing.push('Gastos de Defensa (Sublímite COP)');
+
+            if (!isPercent(formData.datos_json.deducibles.porcentaje_valor_perdida)) missing.push('Deducibles (% Pérdida: 1-100)');
+            if (!isPositive(formData.datos_json.deducibles.minimo_cop)) missing.push('Deducibles (Mínimo COP)');
+            if (!isNonEmpty(formData.datos_json.deducibles.gastos_defensa_texto)) missing.push('Deducibles (Texto Gastos Defensa)');
+        }
+
+        if (currentStep === 4) {
+            if (!isPositive(formData.datos_json.limite_indemnizacion_valor)) missing.push('Límite Indemnización');
+            if (!isPositive(formData.datos_json.prima_anual_valor)) missing.push('Prima Anual');
+
+            if (!isPercent(formData.datos_json.descuentos?.porcentaje_total)) missing.push('Descuentos (% Total: 1-100)');
+            if (!isPercent(formData.datos_json.descuentos?.porcentaje_comision_cedente)) missing.push('Descuentos (% Comisión Cedente: 1-100)');
+            if (!isPercent(formData.datos_json.descuentos?.porcentaje_intermediario)) missing.push('Descuentos (% Intermediario: 1-100)');
+
+            if (!isPercent(formData.datos_json.retencion_cedente?.porcentaje)) missing.push('Retención Cedente (Porcentaje: 1-100)');
+            if (!isPercent(formData.datos_json.respaldo_reaseguro?.porcentaje)) missing.push('Respaldo Reaseguro (Porcentaje: 1-100)');
+
+            if (!isNonEmpty(formData.datos_json.impuestos_nombre_reasegurador)) missing.push('Impuestos (Nombre Reasegurador)');
+            if (!isPositive(formData.datos_json.garantia_pago_primas_dias)) missing.push('Garantía Pago Primas (Días)');
+            if (!isNonEmpty(formData.datos_json.clausula_intermediario)) missing.push('Cláusula Intermediario');
+        }
+
+        if (missing.length > 0) {
+            return `Completa los campos requeridos: ${missing.join(', ')}`;
+        }
+
         return null;
     };
 
@@ -384,7 +441,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
     const prevStep = () => setStep(s => s - 1);
 
     return (
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col h-[85vh] max-h-[900px] w-full max-w-5xl mx-auto border border-zinc-100">
+        <form onSubmit={handleSubmit} className="w-full flex flex-col">
             {/* Header */}
             <div className="bg-white border-b border-zinc-100 px-8 py-6">
                 <div className="flex justify-between items-center mb-8">
@@ -400,7 +457,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                 </div>
 
                 {/* Stepper */}
-                <div className="relative flex items-center justify-between max-w-3xl mx-auto">
+                <div className="relative flex items-center justify-between max-w-7xl mx-auto">
                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-zinc-100 rounded-full -z-10" />
                     <div className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-blue-600 rounded-full -z-10 transition-all duration-500"
                         style={{ width: `${((step - 1) / 3) * 100}%` }} />
@@ -425,9 +482,9 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                 </div>
             </div>
 
-            {/* Content - Scrollable */}
-            <div className="flex-1 overflow-y-auto p-8 bg-zinc-50/50">
-                <div className="max-w-3xl mx-auto">
+            {/* Content */}
+            <div className="p-8 bg-zinc-50/50">
+                <div className="max-w-7xl mx-auto">
                     {error && (
                         <div className="mb-6 bg-red-50 border border-red-100 text-red-700 px-4 py-3 rounded-xl flex items-center gap-3">
                             <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -472,6 +529,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                                 value={formData.datos_json.base_cobertura_hibrido?.anios || ''}
                                                 onChange={(v: string) => handleJsonChange('base_cobertura_hibrido', 'anios', v)}
                                                 placeholder="Ej. 5"
+                                                required
                                             />
                                             <Input
                                                 type="date"
@@ -479,6 +537,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                                 value={formData.datos_json.base_cobertura_hibrido?.fecha || ''}
                                                 onChange={(v: string) => handleJsonChange('base_cobertura_hibrido', 'fecha', v)}
                                                 icon={Icons.Calendar}
+                                                required
                                             />
                                         </div>
                                     )}
@@ -532,6 +591,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         onChange={(v: string) => handleJsonChange('asegurado', 'razon_social', v)}
                                         icon={Icons.Building}
                                         disabled={!!formData.negocio_id}
+                                        required
                                     />
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <Input
@@ -539,11 +599,13 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                             value={formData.datos_json.asegurado.identificacion_nit}
                                             onChange={(v: string) => handleJsonChange('asegurado', 'identificacion_nit', v)}
                                             disabled={!!formData.negocio_id}
+                                            required
                                         />
                                         <Input
                                             label="Ubicación"
                                             value={formData.datos_json.asegurado.ubicacion}
                                             onChange={(v: string) => handleJsonChange('asegurado', 'ubicacion', v)}
+                                            required
                                         />
                                     </div>
                                 </div>
@@ -557,11 +619,13 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         value={formData.datos_json.reasegurado.nombre}
                                         onChange={(v: string) => handleJsonChange('reasegurado', 'nombre', v)}
                                         icon={Icons.Building}
+                                        required
                                     />
                                     <Input
                                         label="Dirección"
                                         value={formData.datos_json.reasegurado.direccion}
                                         onChange={(v: string) => handleJsonChange('reasegurado', 'direccion', v)}
+                                        required
                                     />
                                 </div>
                             </div>
@@ -578,6 +642,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         value={formData.datos_json.retroactividad?.anios || ''}
                                         onChange={(v: string) => handleJsonChange('retroactividad', 'anios', v)}
                                         placeholder="Ej. 2 años"
+                                        required
                                     />
                                     <Input
                                         type="date"
@@ -585,6 +650,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         value={formData.datos_json.retroactividad?.fecha_inicio || ''}
                                         onChange={(v: string) => handleJsonChange('retroactividad', 'fecha_inicio', v)}
                                         icon={Icons.Calendar}
+                                        required
                                     />
                                     <Input
                                         type="date"
@@ -592,6 +658,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         value={formData.datos_json.retroactividad?.fecha_fin || ''}
                                         onChange={(v: string) => handleJsonChange('retroactividad', 'fecha_fin', v)}
                                         icon={Icons.Calendar}
+                                        required
                                     />
                                 </div>
                             </div>
@@ -604,6 +671,10 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         label="% Límite"
                                         value={formData.datos_json.gastos_defensa?.porcentaje_limite}
                                         onChange={(v: string) => handleJsonChange('gastos_defensa', 'porcentaje_limite', Number(v))}
+                                        required
+                                        min={0}
+                                        max={100}
+                                        step={0.01}
                                     />
                                     <Input
                                         type="number"
@@ -611,6 +682,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         value={formData.datos_json.gastos_defensa?.sublimite_evento_cop}
                                         onChange={(v: string) => handleJsonChange('gastos_defensa', 'sublimite_evento_cop', Number(v))}
                                         icon={Icons.Money}
+                                        required
                                     />
                                 </div>
                             </div>
@@ -623,6 +695,10 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         label="% Pérdida"
                                         value={formData.datos_json.deducibles.porcentaje_valor_perdida}
                                         onChange={(v: string) => handleJsonChange('deducibles', 'porcentaje_valor_perdida', Number(v))}
+                                        required
+                                        min={0}
+                                        max={100}
+                                        step={0.01}
                                     />
                                     <Input
                                         type="number"
@@ -630,6 +706,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         value={formData.datos_json.deducibles.minimo_cop}
                                         onChange={(v: string) => handleJsonChange('deducibles', 'minimo_cop', Number(v))}
                                         icon={Icons.Money}
+                                        required
                                     />
                                 </div>
                                 <div className="mt-6">
@@ -638,6 +715,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         value={formData.datos_json.deducibles.gastos_defensa_texto}
                                         onChange={(v: string) => handleJsonChange('deducibles', 'gastos_defensa_texto', v)}
                                         placeholder="Ej. Incluidos en el límite"
+                                        required
                                     />
                                 </div>
                             </div>
@@ -655,6 +733,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         value={formData.datos_json.limite_indemnizacion_valor}
                                         onChange={(v: string) => handleJsonChange('limite_indemnizacion_valor', null, Number(v))}
                                         icon={Icons.Money}
+                                        required
                                     />
                                     <Input
                                         type="number"
@@ -662,6 +741,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         value={formData.datos_json.prima_anual_valor}
                                         onChange={(v: string) => handleJsonChange('prima_anual_valor', null, Number(v))}
                                         icon={Icons.Money}
+                                        required
                                     />
                                 </div>
                             </div>
@@ -674,18 +754,30 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         label="% Total"
                                         value={formData.datos_json.descuentos?.porcentaje_total}
                                         onChange={(v: string) => handleJsonChange('descuentos', 'porcentaje_total', Number(v))}
+                                        required
+                                        min={0}
+                                        max={100}
+                                        step={0.01}
                                     />
                                     <Input
                                         type="number"
                                         label="% Comisión Cedente"
                                         value={formData.datos_json.descuentos?.porcentaje_comision_cedente}
                                         onChange={(v: string) => handleJsonChange('descuentos', 'porcentaje_comision_cedente', Number(v))}
+                                        required
+                                        min={0}
+                                        max={100}
+                                        step={0.01}
                                     />
                                     <Input
                                         type="number"
                                         label="% Intermediario"
                                         value={formData.datos_json.descuentos?.porcentaje_intermediario}
                                         onChange={(v: string) => handleJsonChange('descuentos', 'porcentaje_intermediario', Number(v))}
+                                        required
+                                        min={0}
+                                        max={100}
+                                        step={0.01}
                                     />
                                 </div>
                             </div>
@@ -698,6 +790,10 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         label="Porcentaje %"
                                         value={formData.datos_json.retencion_cedente?.porcentaje}
                                         onChange={(v: string) => handleJsonChange('retencion_cedente', 'porcentaje', Number(v))}
+                                        required
+                                        min={0}
+                                        max={100}
+                                        step={0.01}
                                     />
                                 </div>
                                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
@@ -707,6 +803,10 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         label="Porcentaje %"
                                         value={formData.datos_json.respaldo_reaseguro?.porcentaje}
                                         onChange={(v: string) => handleJsonChange('respaldo_reaseguro', 'porcentaje', Number(v))}
+                                        required
+                                        min={0}
+                                        max={100}
+                                        step={0.01}
                                     />
                                 </div>
                             </div>
@@ -718,23 +818,26 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         label="Impuestos (Nombre Reasegurador)"
                                         value={formData.datos_json.impuestos_nombre_reasegurador || ''}
                                         onChange={(v: string) => handleJsonChange('impuestos_nombre_reasegurador', null, v)}
+                                        required
                                     />
                                     <Input
                                         type="number"
                                         label="Garantía Pago Primas (Días)"
                                         value={formData.datos_json.garantia_pago_primas_dias}
                                         onChange={(v: string) => handleJsonChange('garantia_pago_primas_dias', null, parseInt(v))}
+                                        required
                                     />
                                 </div>
 
                                 <div className="mt-6">
-                                    <label className="block text-sm font-medium text-zinc-700 mb-1.5">Cláusula Intermediario</label>
+                                    <label className="block text-sm font-medium text-zinc-700 mb-1.5">Cláusula Intermediario *</label>
                                     <textarea
                                         className="w-full rounded-xl border-zinc-200 bg-zinc-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 p-4"
                                         rows={3}
                                         value={formData.datos_json.clausula_intermediario || ''}
                                         onChange={e => handleJsonChange('clausula_intermediario', null, e.target.value)}
                                         placeholder="Ingrese el texto de la cláusula..."
+                                        required
                                     />
                                 </div>
                             </div>
@@ -744,8 +847,8 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
             </div>
 
             {/* Footer */}
-            <div className="bg-white px-8 py-5 border-t border-zinc-100 flex justify-between items-center">
-                <div>
+            <div className="bg-white px-8 py-5 border-t border-zinc-100 flex justify-center">
+                <div className="flex w-full max-w-3xl items-center justify-center gap-8">
                     {step > 1 ? (
                         <button
                             type="button"
@@ -763,9 +866,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                             Cancelar
                         </button>
                     )}
-                </div>
 
-                <div className="flex gap-4">
                     {step < 4 ? (
                         <button
                             key="btn-next"
