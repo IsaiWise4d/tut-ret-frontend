@@ -98,7 +98,7 @@ function NegocioSearchInput({ selectedNegocioId, onSelect }: NegocioSearchInputP
                 const negocio = negocios.find(n => n.id === selectedNegocioId);
                 if (negocio) {
                     setSelectedNegocio(negocio);
-                    setSearchQuery(`${negocio.codigo} - ${negocio.compania}`);
+                    setSearchQuery(`${negocio.codigo} - ${negocio.compania?.nombre || ''}`);
                 }
             });
         }
@@ -129,7 +129,7 @@ function NegocioSearchInput({ selectedNegocioId, onSelect }: NegocioSearchInputP
 
     const handleSelect = (negocio: Negocio) => {
         setSelectedNegocio(negocio);
-        setSearchQuery(`${negocio.codigo} - ${negocio.compania}`);
+        setSearchQuery(`${negocio.codigo} - ${negocio.compania?.nombre || ''}`);
         setShowDropdown(false);
         onSelect(negocio.id.toString());
     };
@@ -191,9 +191,9 @@ function NegocioSearchInput({ selectedNegocioId, onSelect }: NegocioSearchInputP
                                 <div className="text-sm text-zinc-500">
                                     <span className="font-medium text-zinc-700">{aseguradosMap[negocio.asegurado_id] || 'Cargando...'}</span>
                                     <span className="mx-1">•</span>
-                                    {negocio.compania}
+                                    {negocio.compania?.nombre}
                                     <span className="mx-1">•</span>
-                                    {negocio.corredor}
+                                    {negocio.corredor?.nombre}
                                 </div>
                             </button>
                         ))}
@@ -389,13 +389,20 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
 
         if (id) {
             try {
-                const negocios = await api.getNegocios();
+                const [negocios, companias] = await Promise.all([
+                    api.getNegocios(),
+                    api.getCompaniasSeguros()
+                ]);
                 const negocio = negocios.find(n => n.id === id);
 
                 if (negocio) {
                     const asegurado = await api.getAsegurado(negocio.asegurado_id);
                     const ubicaciones = await api.getUbicaciones(negocio.asegurado_id);
                     const ubicacion = ubicaciones.find(u => u.id === negocio.ubicacion_id);
+                    
+                    const compania = companias.find(c => c.id === negocio.compania_id);
+                    const nombreCompania = compania ? compania.nombre : '';
+                    const direccionCompania = compania?.direccion || '';
 
                     setFormData(prev => ({
                         ...prev,
@@ -404,7 +411,8 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                             ...prev.datos_json,
                             reasegurado: {
                                 ...prev.datos_json.reasegurado,
-                                nombre: negocio.compania // Autocompletar reaseguradora
+                                nombre: nombreCompania,
+                                direccion: direccionCompania
                             },
                             asegurado: {
                                 razon_social: asegurado.razon_social,
