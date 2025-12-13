@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Asegurado, Ubicacion } from '@/app/types/asegurados';
-import { Negocio, CreateNegocioData, UpdateNegocioData } from '@/app/types/negocios';
-import { getUbicaciones, createNegocio, updateNegocio, searchAsegurados } from '@/app/lib/api';
-import { CORREDORES, COMPANIAS } from '@/app/data/negociosData';
+import { Negocio, CreateNegocioData, UpdateNegocioData, CorredorReaseguros, CompaniaSeguros } from '@/app/types/negocios';
+import { getUbicaciones, createNegocio, updateNegocio, searchAsegurados, getCorredoresReaseguros, getCompaniasSeguros } from '@/app/lib/api';
 
 interface NegocioFormProps {
     initialData?: Negocio;
@@ -16,8 +15,12 @@ export default function NegocioForm({ initialData, onSuccess, onCancel }: Negoci
     // Form states
     const [aseguradoId, setAseguradoId] = useState<number>(initialData?.asegurado_id || 0);
     const [ubicacionId, setUbicacionId] = useState<number>(initialData?.ubicacion_id || 0);
-    const [corredor, setCorredor] = useState(initialData?.corredor || '');
-    const [compania, setCompania] = useState(initialData?.compania || '');
+    const [corredorId, setCorredorId] = useState<number>(initialData?.corredor_id || 0);
+    const [companiaId, setCompaniaId] = useState<number>(initialData?.compania_id || 0);
+
+    // Lists
+    const [corredoresList, setCorredoresList] = useState<CorredorReaseguros[]>([]);
+    const [companiasList, setCompaniasList] = useState<CompaniaSeguros[]>([]);
 
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
@@ -33,6 +36,20 @@ export default function NegocioForm({ initialData, onSuccess, onCancel }: Negoci
     const [error, setError] = useState<string | null>(null);
 
     const isEditing = !!initialData;
+
+    // Fetch Corredores and Companias
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [c, co] = await Promise.all([getCorredoresReaseguros(), getCompaniasSeguros()]);
+                setCorredoresList(c);
+                setCompaniasList(co);
+            } catch (e) {
+                console.error("Error fetching lists", e);
+            }
+        };
+        fetchData();
+    }, []);
 
     // Search effect
     useEffect(() => {
@@ -107,16 +124,16 @@ export default function NegocioForm({ initialData, onSuccess, onCancel }: Negoci
         try {
             if (isEditing && initialData) {
                 const updateData: UpdateNegocioData = {
-                    corredor,
-                    compania,
+                    corredor_id: corredorId,
+                    compania_id: companiaId,
                 };
                 await updateNegocio(initialData.id, updateData);
             } else {
                 const createData: CreateNegocioData = {
                     asegurado_id: aseguradoId,
                     ubicacion_id: ubicacionId,
-                    corredor,
-                    compania
+                    corredor_id: corredorId,
+                    compania_id: companiaId
                 };
                 await createNegocio(createData);
             }
@@ -250,14 +267,14 @@ export default function NegocioForm({ initialData, onSuccess, onCancel }: Negoci
                     <div className="relative">
                         <select
                             id="corredor"
-                            value={corredor}
-                            onChange={(e) => setCorredor(e.target.value)}
+                            value={corredorId}
+                            onChange={(e) => setCorredorId(Number(e.target.value))}
                             className="block w-full rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base py-4 px-5 bg-gray-50 focus:bg-white transition-colors duration-200 appearance-none"
                             required
                         >
-                            <option value="">Seleccione un Corredor</option>
-                            {CORREDORES.map((c) => (
-                                <option key={c.id} value={c.name}>{c.name}</option>
+                            <option value={0}>Seleccione un Corredor</option>
+                            {corredoresList.map((c) => (
+                                <option key={c.id} value={c.id}>{c.nombre}</option>
                             ))}
                         </select>
                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
@@ -276,14 +293,14 @@ export default function NegocioForm({ initialData, onSuccess, onCancel }: Negoci
                     <div className="relative">
                         <select
                             id="compania"
-                            value={compania}
-                            onChange={(e) => setCompania(e.target.value)}
+                            value={companiaId}
+                            onChange={(e) => setCompaniaId(Number(e.target.value))}
                             className="block w-full rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base py-4 px-5 bg-gray-50 focus:bg-white transition-colors duration-200 appearance-none"
                             required
                         >
-                            <option value="">Seleccione una Compañía</option>
-                            {COMPANIAS.map((c) => (
-                                <option key={c.id} value={c.name}>{c.name}</option>
+                            <option value={0}>Seleccione una Compañía</option>
+                            {companiasList.map((c) => (
+                                <option key={c.id} value={c.id}>{c.nombre}</option>
                             ))}
                         </select>
                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">

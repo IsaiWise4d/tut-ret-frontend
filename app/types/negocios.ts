@@ -1,10 +1,24 @@
+export interface CorredorReaseguros {
+  id: number;
+  nombre: string;
+  direccion?: string;
+}
+
+export interface CompaniaSeguros {
+  id: number;
+  nombre: string;
+  direccion?: string;
+}
+
 export interface Negocio {
   id: number;
   codigo: string;
   asegurado_id: number;
   ubicacion_id: number;
-  corredor: string;
-  compania: string;
+  corredor_id: number;
+  compania_id: number;
+  corredor?: CorredorReaseguros;
+  compania?: CompaniaSeguros;
   created_at: string;
   updated_at: string | null;
 }
@@ -12,17 +26,20 @@ export interface Negocio {
 export interface CreateNegocioData {
   asegurado_id: number;
   ubicacion_id: number;
-  corredor: string;
-  compania: string;
+  corredor_id: number;
+  compania_id: number;
 }
 
 export interface UpdateNegocioData {
-  corredor?: string;
-  compania?: string;
+  corredor_id?: number;
+  compania_id?: number;
 }
 
 export interface NegocioHistory {
-  version: number;
-  data: Negocio;
+  id: number;
+  negocio_id: number;
+  estado_anterior: any | null;
+  estado_nuevo: any;
+  tipo_cambio: string;
   created_at: string;
 }

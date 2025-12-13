@@ -1,6 +1,6 @@
 import { LoginResponse, User, CreateUserData, ApiResponse } from '@/app/types/auth';
 import { Asegurado, CreateAseguradoData, Ubicacion, CreateUbicacionData } from '@/app/types/asegurados';
-import { Negocio, CreateNegocioData, UpdateNegocioData, NegocioHistory } from '@/app/types/negocios';
+import { Negocio, CreateNegocioData, UpdateNegocioData, NegocioHistory, CorredorReaseguros, CompaniaSeguros } from '@/app/types/negocios';
 
 import { Slip, CreateSlipData, UpdateSlipData } from '@/app/types/slips';
 
@@ -174,12 +174,21 @@ export async function createAsegurado(data: CreateAseguradoData): Promise<Asegur
 }
 
 // UBICACIONES
-export async function getUbicaciones(aseguradoId: number): Promise<Ubicacion[]> {
-  const response = await fetch(`${API_BASE_URL}/asegurados/${aseguradoId}/ubicaciones/`, {
+export async function getUbicaciones(aseguradoId?: number): Promise<Ubicacion[]> {
+  // If aseguradoId is provided, fetch locations for that asegurado
+  if (aseguradoId) {
+    const response = await fetch(`${API_BASE_URL}/asegurados/${aseguradoId}/ubicaciones/`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse<Ubicacion[]>(response);
+  }
+  
+  // If no ID, fetch ALL locations from the new general endpoint
+  const response = await fetch(`${API_BASE_URL}/ubicaciones/`, {
     method: 'GET',
     headers: getAuthHeaders(),
   });
-
   return handleResponse<Ubicacion[]>(response);
 }
 
@@ -282,6 +291,80 @@ export async function getNegocioHistory(id: number): Promise<NegocioHistory[]> {
     headers: getAuthHeaders(),
   });
   return handleResponse<NegocioHistory[]>(response);
+}
+
+// CORREDORES REASEGUROS
+export async function getCorredoresReaseguros(): Promise<CorredorReaseguros[]> {
+  const response = await fetch(`${API_BASE_URL}/corredores-reaseguros/`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+  return handleResponse<CorredorReaseguros[]>(response);
+}
+
+export async function createCorredorReaseguros(data: { nombre: string; direccion?: string }): Promise<CorredorReaseguros> {
+  const response = await fetch(`${API_BASE_URL}/corredores-reaseguros/`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse<CorredorReaseguros>(response);
+}
+
+export async function updateCorredorReaseguros(id: number, data: { nombre?: string; direccion?: string }): Promise<CorredorReaseguros> {
+  const response = await fetch(`${API_BASE_URL}/corredores-reaseguros/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse<CorredorReaseguros>(response);
+}
+
+export async function deleteCorredorReaseguros(id: number): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/corredores-reaseguros/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    throw new Error('Error al eliminar corredor');
+  }
+}
+
+// COMPANIAS SEGUROS
+export async function getCompaniasSeguros(): Promise<CompaniaSeguros[]> {
+  const response = await fetch(`${API_BASE_URL}/companias-seguros/`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+  return handleResponse<CompaniaSeguros[]>(response);
+}
+
+export async function createCompaniaSeguros(data: { nombre: string; direccion?: string }): Promise<CompaniaSeguros> {
+  const response = await fetch(`${API_BASE_URL}/companias-seguros/`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse<CompaniaSeguros>(response);
+}
+
+export async function updateCompaniaSeguros(id: number, data: { nombre?: string; direccion?: string }): Promise<CompaniaSeguros> {
+  const response = await fetch(`${API_BASE_URL}/companias-seguros/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse<CompaniaSeguros>(response);
+}
+
+export async function deleteCompaniaSeguros(id: number): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/companias-seguros/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    throw new Error('Error al eliminar compañía');
+  }
 }
 
 // SLIPS
