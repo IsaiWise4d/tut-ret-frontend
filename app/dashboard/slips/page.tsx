@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import { Slip, SlipHistory } from '@/app/types/slips';
-import { getSlips, deleteSlip, generateSlipPdf, getSlipHistory } from '@/app/lib/api';
+import { getSlips, deleteSlip, generateSlipPdf, getSlipHistory, searchSlips } from '@/app/lib/api';
 import SlipForm from '@/app/components/forms/SlipForm';
 import SlipHistoryModal from '@/app/components/SlipHistoryModal';
 
@@ -20,16 +20,23 @@ function SlipsContent() {
     const [slips, setSlips] = useState<Slip[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingSlip, setEditingSlip] = useState<Slip | undefined>(undefined);
+    const [vigenciaFilter, setVigenciaFilter] = useState<'all' | 'vigente' | 'expirado'>('all');
+    const [searchQuery, setSearchQuery] = useState('');
 
     // History Modal State
     const [historyOpen, setHistoryOpen] = useState(false);
     const [historyData, setHistoryData] = useState<SlipHistory[]>([]);
     const [historyLoading, setHistoryLoading] = useState(false);
 
-    const loadSlips = async () => {
+    const loadSlips = async (query: string = '') => {
         setLoading(true);
         try {
-            const data = await getSlips();
+            let data;
+            if (query.trim()) {
+                data = await searchSlips(query);
+            } else {
+                data = await getSlips();
+            }
             setSlips(data);
         } catch (err) {
             console.error(err);
@@ -39,10 +46,32 @@ function SlipsContent() {
     };
 
     useEffect(() => {
-        if (viewMode === 'list') {
-            loadSlips();
-        }
-    }, [viewMode]);
+        const timer = setTimeout(() => {
+            if (viewMode === 'list') {
+                loadSlips(searchQuery);
+            }
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [viewMode, searchQuery]);
+
+    const toggleVigenciaFilter = () => {
+        setVigenciaFilter(prev => {
+            if (prev === 'all') return 'vigente';
+            if (prev === 'vigente') return 'expirado';
+            return 'all';
+        });
+    };
+
+    const filteredSlips = slips.filter(slip => {
+        if (vigenciaFilter === 'all') return true;
+        
+        const isVigente = new Date(slip.vigencia_fin + 'T00:00:00') >= new Date(new Date().setHours(0, 0, 0, 0));
+        
+        if (vigenciaFilter === 'vigente') return isVigente;
+        if (vigenciaFilter === 'expirado') return !isVigente;
+        return true;
+    });
 
     const handleCreate = () => {
         setEditingSlip(undefined);
@@ -123,6 +152,22 @@ function SlipsContent() {
 
                 {viewMode === 'list' ? (
                     <div className="bg-white rounded-2xl shadow-xl shadow-zinc-200/50 overflow-hidden">
+                        <div className="p-4 border-b border-zinc-100">
+                            <div className="relative max-w-md">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg className="h-5 w-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </div>
+                                <input
+                                    type="text"
+                                    className="block w-full pl-10 pr-3 py-2 border border-zinc-300 rounded-lg leading-5 bg-white placeholder-zinc-500 focus:outline-none focus:placeholder-zinc-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
+                                    placeholder="Buscar por número de slip o asegurado..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                        </div>
                         {loading ? (
                             <div className="flex justify-center p-12">
                                 <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
@@ -140,12 +185,34 @@ function SlipsContent() {
                                             <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Asegurado</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Tipo</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Estado</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Vigencia</th>
+                                            <th 
+                                                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 cursor-pointer hover:bg-zinc-100 transition-colors select-none"
+                                                onClick={toggleVigenciaFilter}
+                                                title="Click para filtrar: Todos -> Vigentes -> Expirados"
+                                            >
+                                                <div className="flex items-center gap-1">
+                                                    Vigencia
+                                                    {vigenciaFilter !== 'all' && (
+                                                        <span className={`ml-1 px-1.5 py-0.5 rounded text-[10px] ${
+                                                            vigenciaFilter === 'vigente' 
+                                                                ? 'bg-green-100 text-green-700' 
+                                                                : 'bg-red-100 text-red-700'
+                                                        }`}>
+                                                            {vigenciaFilter === 'vigente' ? 'Vigentes' : 'Expirados'}
+                                                        </span>
+                                                    )}
+                                                    {vigenciaFilter === 'all' && (
+                                                        <svg className="w-3 h-3 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                        </svg>
+                                                    )}
+                                                </div>
+                                            </th>
                                             <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500">Acciones</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-zinc-200 bg-white">
-                                        {slips.map((slip) => (
+                                        {filteredSlips.map((slip) => (
                                             <tr key={slip.id} className="hover:bg-zinc-50 transition-colors">
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-zinc-900">
                                                     {slip.numero_slip}
@@ -167,7 +234,20 @@ function SlipsContent() {
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-500">
-                                                    {slip.vigencia_inicio} / {slip.vigencia_fin}
+                                                    <div className="flex flex-col gap-1">
+                                                        <span>{slip.vigencia_inicio} / {slip.vigencia_fin}</span>
+                                                        {(() => {
+                                                            const isVigente = new Date(slip.vigencia_fin + 'T00:00:00') >= new Date(new Date().setHours(0, 0, 0, 0));
+                                                            return (
+                                                                <span className={`text-xs px-2 py-0.5 rounded-full w-fit font-medium ${isVigente
+                                                                        ? 'bg-green-50 text-green-700 border border-green-200'
+                                                                        : 'bg-red-50 text-red-700 border border-red-200'
+                                                                    }`}>
+                                                                    {isVigente ? 'Vigente' : 'Expirado'}
+                                                                </span>
+                                                            );
+                                                        })()}
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                     <button

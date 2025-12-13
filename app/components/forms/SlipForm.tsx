@@ -208,14 +208,22 @@ function NegocioSearchInput({ selectedNegocioId, onSelect }: NegocioSearchInputP
 }
 
 // Reusable Components (Moved outside SlipForm)
-const Input = ({ label, value, onChange, type = "text", required = false, icon: Icon, placeholder, disabled = false, min, max, step }: any) => {
-    const isNumber = type === 'number';
+const Input = ({ label, value, onChange, type = "text", required = false, icon: Icon, placeholder, disabled = false, min, max, step, isCurrency = false }: any) => {
+    const isNumber = type === 'number' || isCurrency;
     const hasMin = typeof min === 'number' && Number.isFinite(min);
     const hasMax = typeof max === 'number' && Number.isFinite(max);
 
     const [isFocused, setIsFocused] = useState(false);
+    
+    const formatCurrency = (val: string) => {
+        if (!val) return '';
+        const clean = val.replace(/\./g, '');
+        return clean.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    };
+
     const [internalValue, setInternalValue] = useState<string>(() => {
         if (value === null || value === undefined) return '';
+        if (isCurrency) return formatCurrency(String(value));
         return String(value);
     });
 
@@ -226,8 +234,12 @@ const Input = ({ label, value, onChange, type = "text", required = false, icon: 
             setInternalValue('');
             return;
         }
-        setInternalValue(String(value));
-    }, [value, isFocused, isNumber]);
+        if (isCurrency) {
+            setInternalValue(formatCurrency(String(value)));
+        } else {
+            setInternalValue(String(value));
+        }
+    }, [value, isFocused, isNumber, isCurrency]);
 
     const clampNumber = (n: number) => {
         let next = n;
@@ -237,6 +249,17 @@ const Input = ({ label, value, onChange, type = "text", required = false, icon: 
     };
 
     const handleValueChange = (rawValue: string) => {
+        if (isCurrency) {
+            // Remove dots to check if it's a valid number
+            const clean = rawValue.replace(/\./g, '');
+            if (!/^\d*$/.test(clean)) return;
+
+            const formatted = formatCurrency(clean);
+            setInternalValue(formatted);
+            onChange(clean);
+            return;
+        }
+
         if (!isNumber) {
             onChange(rawValue);
             return;
@@ -269,6 +292,12 @@ const Input = ({ label, value, onChange, type = "text", required = false, icon: 
     const handleBlur = () => {
         setIsFocused(false);
         if (!isNumber) return;
+
+        if (isCurrency) {
+            // Ensure formatting on blur
+            setInternalValue(formatCurrency(internalValue));
+            return;
+        }
 
         if (internalValue === '' || internalValue === '.' || internalValue.endsWith('.')) {
             // Normaliza estados intermedios al salir.
@@ -312,13 +341,13 @@ const Input = ({ label, value, onChange, type = "text", required = false, icon: 
                     </div>
                 )}
                 <input
-                    type={type}
+                    type={isCurrency ? 'text' : type}
                     required={required}
                     value={isNumber ? internalValue : value}
                     onChange={(e) => handleValueChange(e.target.value)}
                     onKeyDown={handleKeyDown}
                     onFocus={(e) => {
-                        if (type === 'number') {
+                        if (type === 'number' || isCurrency) {
                             setIsFocused(true);
                             e.currentTarget.select();
                         }
@@ -793,6 +822,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         onChange={(v: string) => handleJsonChange('gastos_defensa', 'sublimite_evento_cop', Number(v))}
                                         icon={Icons.Money}
                                         required
+                                        isCurrency
                                     />
                                 </div>
                             </div>
@@ -817,6 +847,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         onChange={(v: string) => handleJsonChange('deducibles', 'minimo_cop', Number(v))}
                                         icon={Icons.Money}
                                         required
+                                        isCurrency
                                     />
                                 </div>
                                 <div className="mt-6">
@@ -844,6 +875,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         onChange={(v: string) => handleJsonChange('limite_indemnizacion_valor', null, Number(v))}
                                         icon={Icons.Money}
                                         required
+                                        isCurrency
                                     />
                                     <Input
                                         type="number"
@@ -852,6 +884,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         onChange={(v: string) => handleJsonChange('prima_anual_valor', null, Number(v))}
                                         icon={Icons.Money}
                                         required
+                                        isCurrency
                                     />
                                 </div>
                             </div>

@@ -376,6 +376,14 @@ export async function getSlips(): Promise<Slip[]> {
   return handleResponse<Slip[]>(response);
 }
 
+export async function searchSlips(query: string): Promise<Slip[]> {
+  const response = await fetch(`${API_BASE_URL}/slips/search?q=${encodeURIComponent(query)}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+  return handleResponse<Slip[]>(response);
+}
+
 export async function getSlip(id: number): Promise<Slip> {
   const response = await fetch(`${API_BASE_URL}/slips/${id}`, {
     method: 'GET',
