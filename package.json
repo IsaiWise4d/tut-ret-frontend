@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@types/react-datepicker": "^7.0.0",
+    "date-fns": "^4.1.0",
     "next": "16.0.1",
     "react": "19.2.0",
     "react-datepicker": "^8.9.0",

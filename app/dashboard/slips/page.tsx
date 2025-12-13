@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
-import { Slip } from '@/app/types/slips';
-import { getSlips, deleteSlip, generateSlipPdf } from '@/app/lib/api';
+import { Slip, SlipHistory } from '@/app/types/slips';
+import { getSlips, deleteSlip, generateSlipPdf, getSlipHistory } from '@/app/lib/api';
 import SlipForm from '@/app/components/forms/SlipForm';
+import SlipHistoryModal from '@/app/components/SlipHistoryModal';
 
 export default function SlipsPage() {
     return (
@@ -19,6 +20,11 @@ function SlipsContent() {
     const [slips, setSlips] = useState<Slip[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingSlip, setEditingSlip] = useState<Slip | undefined>(undefined);
+
+    // History Modal State
+    const [historyOpen, setHistoryOpen] = useState(false);
+    const [historyData, setHistoryData] = useState<SlipHistory[]>([]);
+    const [historyLoading, setHistoryLoading] = useState(false);
 
     const loadSlips = async () => {
         setLoading(true);
@@ -46,6 +52,19 @@ function SlipsContent() {
     const handleEdit = (slip: Slip) => {
         setEditingSlip(slip);
         setViewMode('form');
+    };
+
+    const handleHistory = async (slipId: number) => {
+        setHistoryOpen(true);
+        setHistoryLoading(true);
+        try {
+            const data = await getSlipHistory(slipId);
+            setHistoryData(data);
+        } catch (err) {
+            console.error("Failed to load history", err);
+        } finally {
+            setHistoryLoading(false);
+        }
     };
 
     const handleDelete = async (id: number) => {
@@ -152,6 +171,12 @@ function SlipsContent() {
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                     <button
+                                                        onClick={() => handleHistory(slip.id)}
+                                                        className="text-gray-500 hover:text-gray-700 mr-4 font-semibold"
+                                                    >
+                                                        Historial
+                                                    </button>
+                                                    <button
                                                         onClick={() => handleGeneratePdf(slip)}
                                                         className="text-purple-600 hover:text-purple-900 mr-4 font-semibold"
                                                         title="Generar PDF"
@@ -163,12 +188,6 @@ function SlipsContent() {
                                                         className="text-blue-600 hover:text-blue-900 mr-4 font-semibold"
                                                     >
                                                         Editar
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(slip.id)}
-                                                        className="text-red-500 hover:text-red-700 hover:underline"
-                                                    >
-                                                        Eliminar
                                                     </button>
                                                 </td>
                                             </tr>
@@ -188,6 +207,13 @@ function SlipsContent() {
                     </div>
                 )}
             </div>
+
+            <SlipHistoryModal
+                isOpen={historyOpen}
+                onClose={() => setHistoryOpen(false)}
+                history={historyData}
+                isLoading={historyLoading}
+            />
         </div>
     );
 }

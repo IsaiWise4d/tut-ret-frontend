@@ -2,7 +2,7 @@ import { LoginResponse, User, CreateUserData, ApiResponse } from '@/app/types/au
 import { Asegurado, CreateAseguradoData, Ubicacion, CreateUbicacionData } from '@/app/types/asegurados';
 import { Negocio, CreateNegocioData, UpdateNegocioData, NegocioHistory, CorredorReaseguros, CompaniaSeguros } from '@/app/types/negocios';
 
-import { Slip, CreateSlipData, UpdateSlipData } from '@/app/types/slips';
+import { Slip, CreateSlipData, UpdateSlipData, SlipHistory } from '@/app/types/slips';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -465,5 +465,13 @@ export async function generateSlipPdf(id: number, retry = true): Promise<Blob> {
   }
 
   return response.blob();
+}
+
+export async function getSlipHistory(id: number): Promise<SlipHistory[]> {
+  const response = await fetch(`${API_BASE_URL}/slips/${id}/history`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+  return handleResponse<SlipHistory[]>(response);
 }
 

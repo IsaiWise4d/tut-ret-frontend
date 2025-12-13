@@ -15,6 +15,16 @@ export interface Slip {
     updated_at?: string;
 }
 
+export interface SlipHistory {
+    id: number;
+    slip_id: number;
+    estado_anterior: any; // Puede ser Slip o un objeto parcial
+    estado_nuevo: any;
+    tipo_cambio: 'CREACION' | 'ACTUALIZACION';
+    created_at: string;
+    created_by_id?: number;
+}
+
 // Estructura anidada compleja (datos_json)
 export interface SlipDataJson {
     reasegurado: {
