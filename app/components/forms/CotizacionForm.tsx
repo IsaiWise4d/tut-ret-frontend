@@ -55,6 +55,23 @@ export default function CotizacionForm() {
     }));
   };
 
+  const normalizePercentInput = (rawValue: string): string | null => {
+    // Permite estados intermedios al escribir decimales: "", ".", "10."
+    if (!/^\d*(\.\d*)?$/.test(rawValue)) return null;
+    if (rawValue === "" || rawValue === "." || rawValue.endsWith(".")) return rawValue;
+
+    const parsed = Number(rawValue);
+    if (Number.isNaN(parsed)) return null;
+    const clamped = Math.min(100, Math.max(0, parsed));
+    return String(clamped);
+  };
+
+  const preventInvalidNumberKeys = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "e" || e.key === "E" || e.key === "+" || e.key === "-") {
+      e.preventDefault();
+    }
+  };
+
   const addReasegurador = () => {
     setReaseguradores([
       ...reaseguradores,
@@ -75,6 +92,11 @@ export default function CotizacionForm() {
   };
 
   const updateReasegurador = (id: number, field: keyof Reasegurador, value: string) => {
+    if (field === "porcentaje") {
+      const normalized = normalizePercentInput(value);
+      if (normalized === null) return;
+      value = normalized;
+    }
     setReaseguradores(
       reaseguradores.map((r) => (r.id === id ? { ...r, [field]: value } : r))
     );
@@ -99,6 +121,11 @@ export default function CotizacionForm() {
   };
 
   const updateReasegurado = (id: number, field: keyof ReaseguradoItem, value: string) => {
+    if (field === "porcentaje") {
+      const normalized = normalizePercentInput(value);
+      if (normalized === null) return;
+      value = normalized;
+    }
     setReasegurados(
       reasegurados.map((r) => (r.id === id ? { ...r, [field]: value } : r))
     );
@@ -303,9 +330,11 @@ export default function CotizacionForm() {
                   %
                 </label>
                 <input
-                  type="text"
+                  inputMode="decimal"
                   value={reasegurador.porcentaje}
                   onChange={(e) => updateReasegurador(reasegurador.id, "porcentaje", e.target.value)}
+                  onKeyDown={preventInvalidNumberKeys}
+                  aria-label="Porcentaje"
                   className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -329,9 +358,14 @@ export default function CotizacionForm() {
               Total %
             </label>
             <input
-              type="text"
+              inputMode="decimal"
               value={totalReaseguradores}
-              onChange={(e) => setTotalReaseguradores(e.target.value)}
+              onChange={(e) => {
+                const normalized = normalizePercentInput(e.target.value);
+                if (normalized === null) return;
+                setTotalReaseguradores(normalized);
+              }}
+              onKeyDown={preventInvalidNumberKeys}
                 className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -442,9 +476,11 @@ export default function CotizacionForm() {
                   %
                 </label>
                 <input
-                  type="text"
+                  inputMode="decimal"
                   value={reasegurado.porcentaje}
                   onChange={(e) => updateReasegurado(reasegurado.id, "porcentaje", e.target.value)}
+                  onKeyDown={preventInvalidNumberKeys}
+                  aria-label="Porcentaje"
                   className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -468,9 +504,14 @@ export default function CotizacionForm() {
               Total %
             </label>
             <input
-              type="text"
+              inputMode="decimal"
               value={totalReasegurados}
-              onChange={(e) => setTotalReasegurados(e.target.value)}
+              onChange={(e) => {
+                const normalized = normalizePercentInput(e.target.value);
+                if (normalized === null) return;
+                setTotalReasegurados(normalized);
+              }}
+              onKeyDown={preventInvalidNumberKeys}
               className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>

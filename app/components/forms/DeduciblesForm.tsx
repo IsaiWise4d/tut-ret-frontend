@@ -33,6 +33,22 @@ export default function DeduciblesForm() {
   ]);
   const [removingIds, setRemovingIds] = useState<number[]>([]);
 
+  const normalizePercentInput = (rawValue: string): string | null => {
+    if (!/^\d*(\.\d*)?$/.test(rawValue)) return null;
+    if (rawValue === "" || rawValue === "." || rawValue.endsWith(".")) return rawValue;
+
+    const parsed = Number(rawValue);
+    if (Number.isNaN(parsed)) return null;
+    const clamped = Math.min(100, Math.max(0, parsed));
+    return String(clamped);
+  };
+
+  const preventInvalidNumberKeys = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "e" || e.key === "E" || e.key === "+" || e.key === "-") {
+      e.preventDefault();
+    }
+  };
+
   // Agregar nueva alternativa
   const agregarAlternativa = () => {
     const nuevaAlternativa: Alternativa = {
@@ -64,6 +80,11 @@ export default function DeduciblesForm() {
     campo: keyof Alternativa,
     valor: string
   ) => {
+    if (campo === "porcentajePerdida" || campo === "porcentajeGastosDefensa") {
+      const normalized = normalizePercentInput(valor);
+      if (normalized === null) return;
+      valor = normalized;
+    }
     setAlternativas(
       alternativas.map((alt) =>
         alt.id === id ? { ...alt, [campo]: valor } : alt
@@ -132,7 +153,7 @@ export default function DeduciblesForm() {
               </label>
               <div className="flex items-center gap-2">
                 <input
-                  type="text"
+                  inputMode="decimal"
                   value={alternativa.porcentajePerdida}
                   onChange={(e) =>
                     actualizarAlternativa(
@@ -141,6 +162,7 @@ export default function DeduciblesForm() {
                       e.target.value
                     )
                   }
+                  onKeyDown={preventInvalidNumberKeys}
                   className="w-24 rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-center text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <span className="text-sm font-medium text-zinc-600">
@@ -215,7 +237,7 @@ export default function DeduciblesForm() {
                 </label>
                 <div className="flex items-center gap-2">
                   <input
-                    type="text"
+                    inputMode="decimal"
                     value={alternativa.porcentajeGastosDefensa}
                     onChange={(e) =>
                       actualizarAlternativa(
@@ -224,6 +246,7 @@ export default function DeduciblesForm() {
                         e.target.value
                       )
                     }
+                    onKeyDown={preventInvalidNumberKeys}
                     className="w-24 rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-center text-sm text-zinc-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <span className="text-sm font-medium text-zinc-600">

@@ -208,31 +208,133 @@ function NegocioSearchInput({ selectedNegocioId, onSelect }: NegocioSearchInputP
 }
 
 // Reusable Components (Moved outside SlipForm)
-const Input = ({ label, value, onChange, type = "text", required = false, icon: Icon, placeholder, disabled = false, min, max, step }: any) => (
-    <div className="group">
-        <label className="block text-sm font-medium text-zinc-700 mb-1.5">{label} {required && <span className="text-red-500">*</span>}</label>
-        <div className="relative">
-            {Icon && (
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Icon />
-                </div>
-            )}
-            <input
-                type={type}
-                required={required}
-                value={value}
-                onChange={e => onChange(e.target.value)}
-                onFocus={(e) => type === 'number' && e.target.select()}
-                placeholder={placeholder}
-                disabled={disabled}
-                min={min}
-                max={max}
-                step={step}
-                className={`w-full rounded-xl border-zinc-200 bg-zinc-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 py-2.5 ${Icon ? 'pl-10' : 'px-4'} ${disabled ? 'opacity-60 cursor-not-allowed bg-zinc-100 text-zinc-500' : ''}`}
-            />
+const Input = ({ label, value, onChange, type = "text", required = false, icon: Icon, placeholder, disabled = false, min, max, step }: any) => {
+    const isNumber = type === 'number';
+    const hasMin = typeof min === 'number' && Number.isFinite(min);
+    const hasMax = typeof max === 'number' && Number.isFinite(max);
+
+    const [isFocused, setIsFocused] = useState(false);
+    const [internalValue, setInternalValue] = useState<string>(() => {
+        if (value === null || value === undefined) return '';
+        return String(value);
+    });
+
+    useEffect(() => {
+        if (!isNumber) return;
+        if (isFocused) return;
+        if (value === null || value === undefined) {
+            setInternalValue('');
+            return;
+        }
+        setInternalValue(String(value));
+    }, [value, isFocused, isNumber]);
+
+    const clampNumber = (n: number) => {
+        let next = n;
+        if (hasMin) next = Math.max(min, next);
+        if (hasMax) next = Math.min(max, next);
+        return next;
+    };
+
+    const handleValueChange = (rawValue: string) => {
+        if (!isNumber) {
+            onChange(rawValue);
+            return;
+        }
+
+        // Acepta solo números con un punto decimal opcional.
+        if (!/^\d*(\.\d*)?$/.test(rawValue)) return;
+
+        setInternalValue(rawValue);
+
+        if (rawValue === '' || rawValue === '.' || rawValue.endsWith('.')) {
+            // Estado intermedio de escritura (p.ej. "1.")
+            return;
+        }
+
+        const parsed = Number(rawValue);
+        if (Number.isNaN(parsed)) return;
+
+        const clamped = clampNumber(parsed);
+        if (clamped !== parsed) {
+            const nextStr = String(clamped);
+            setInternalValue(nextStr);
+            onChange(nextStr);
+            return;
+        }
+
+        onChange(rawValue);
+    };
+
+    const handleBlur = () => {
+        setIsFocused(false);
+        if (!isNumber) return;
+
+        if (internalValue === '' || internalValue === '.' || internalValue.endsWith('.')) {
+            // Normaliza estados intermedios al salir.
+            const normalized = internalValue === '' ? '' : internalValue.replace(/\.+$/, '');
+            if (normalized === '') {
+                setInternalValue('');
+                return;
+            }
+            const parsed = Number(normalized);
+            if (Number.isNaN(parsed)) return;
+            const clamped = clampNumber(parsed);
+            const nextStr = String(clamped);
+            setInternalValue(nextStr);
+            onChange(nextStr);
+            return;
+        }
+
+        const parsed = Number(internalValue);
+        if (Number.isNaN(parsed)) return;
+        const clamped = clampNumber(parsed);
+        const nextStr = String(clamped);
+        setInternalValue(nextStr);
+        onChange(nextStr);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (!isNumber) return;
+        // Evita notación científica y signos.
+        if (e.key === 'e' || e.key === 'E' || e.key === '+' || e.key === '-') {
+            e.preventDefault();
+        }
+    };
+
+    return (
+        <div className="group">
+            <label className="block text-sm font-medium text-zinc-700 mb-1.5">{label} {required && <span className="text-red-500">*</span>}</label>
+            <div className="relative">
+                {Icon && (
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Icon />
+                    </div>
+                )}
+                <input
+                    type={type}
+                    required={required}
+                    value={isNumber ? internalValue : value}
+                    onChange={(e) => handleValueChange(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    onFocus={(e) => {
+                        if (type === 'number') {
+                            setIsFocused(true);
+                            e.currentTarget.select();
+                        }
+                    }}
+                    onBlur={handleBlur}
+                    placeholder={placeholder}
+                    disabled={disabled}
+                    min={min}
+                    max={max}
+                    step={step}
+                    className={`w-full rounded-xl border-zinc-200 bg-zinc-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 py-2.5 ${Icon ? 'pl-10' : 'px-4'} ${disabled ? 'opacity-60 cursor-not-allowed bg-zinc-100 text-zinc-500' : ''}`}
+                />
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 const SectionTitle = ({ title, subtitle }: { title: string, subtitle?: string }) => (
     <div className="mb-6 border-b border-zinc-100 pb-2">
