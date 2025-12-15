@@ -29,11 +29,13 @@ const initialSlipData: CreateSlipData = {
         retroactividad: { anios: '', fecha_inicio: '', fecha_fin: '' },
         gastos_defensa: { porcentaje_limite: 0, sublimite_evento_cop: 0 },
         limite_indemnizacion_valor: 0,
+        limite_indemnizacion_claims_made_valor: 0,
         prima_anual_valor: 0,
-        deducibles: { porcentaje_valor_perdida: 0, minimo_cop: 0, gastos_defensa_texto: '' },
+        deducibles: { porcentaje_valor_perdida: 0, minimo_cop: 0, gastos_defensa_porcentaje: 0 },
         descuentos: { porcentaje_total: 0, porcentaje_comision_cedente: 0, porcentaje_intermediario: 0 },
         retencion_cedente: { porcentaje: 0, base: 100 },
         respaldo_reaseguro: { porcentaje: 0, base: 100 },
+        reserva_primas: { porcentaje: 0, dias: 0 },
         garantia_pago_primas_dias: 60
     }
 };
@@ -447,7 +449,8 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                 razon_social: asegurado.razon_social,
                                 identificacion_nit: asegurado.identificacion,
                                 ubicacion: ubicacion ? `${ubicacion.ciudad}, ${ubicacion.direccion}` : 'Desconocida'
-                            }
+                            },
+                            impuestos_nombre_reasegurador: nombreCompania
                         }
                     }));
                 }
@@ -541,11 +544,17 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
 
             if (!isPercent(formData.datos_json.deducibles.porcentaje_valor_perdida)) missing.push('Deducibles (% Pérdida: 1-100)');
             if (!isPositive(formData.datos_json.deducibles.minimo_cop)) missing.push('Deducibles (Mínimo COP)');
-            if (!isNonEmpty(formData.datos_json.deducibles.gastos_defensa_texto)) missing.push('Deducibles (Texto Gastos Defensa)');
+            if (!isPercent(formData.datos_json.deducibles.gastos_defensa_porcentaje)) missing.push('Deducibles (Gastos Defensa %: 1-100)');
         }
 
         if (currentStep === 4) {
-            if (!isPositive(formData.datos_json.limite_indemnizacion_valor)) missing.push('Límite Indemnización');
+            if (formData.tipo_slip === 'HIBRIDO') {
+                if (!isPositive(formData.datos_json.limite_indemnizacion_valor)) missing.push('Límite Indemnización (Ocurrencia)');
+                if (!isPositive(formData.datos_json.limite_indemnizacion_claims_made_valor)) missing.push('Límite Indemnización (Claims Made)');
+            } else {
+                if (!isPositive(formData.datos_json.limite_indemnizacion_valor)) missing.push('Límite Indemnización');
+            }
+            
             if (!isPositive(formData.datos_json.prima_anual_valor)) missing.push('Prima Anual');
 
             if (!isPercent(formData.datos_json.descuentos?.porcentaje_total)) missing.push('Descuentos (% Total: 1-100)');
@@ -852,10 +861,13 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                 </div>
                                 <div className="mt-6">
                                     <Input
-                                        label="Texto Gastos Defensa"
-                                        value={formData.datos_json.deducibles.gastos_defensa_texto}
-                                        onChange={(v: string) => handleJsonChange('deducibles', 'gastos_defensa_texto', v)}
-                                        placeholder="Ej. Incluidos en el límite"
+                                        type="number"
+                                        label="Gastos Defensa (%)"
+                                        value={formData.datos_json.deducibles.gastos_defensa_porcentaje}
+                                        onChange={(v: string) => handleJsonChange('deducibles', 'gastos_defensa_porcentaje', Number(v))}
+                                        min={0}
+                                        max={100}
+                                        step={0.01}
                                         required
                                     />
                                 </div>
@@ -868,15 +880,38 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
                                 <SectionTitle title="Valores Económicos" subtitle="Límites y primas del contrato." />
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <Input
-                                        type="number"
-                                        label="Límite Indemnización ($)"
-                                        value={formData.datos_json.limite_indemnizacion_valor}
-                                        onChange={(v: string) => handleJsonChange('limite_indemnizacion_valor', null, Number(v))}
-                                        icon={Icons.Money}
-                                        required
-                                        isCurrency
-                                    />
+                                    {formData.tipo_slip === 'HIBRIDO' ? (
+                                        <>
+                                            <Input
+                                                type="number"
+                                                label="Límite Indemnización ($) (Ocurrencia)"
+                                                value={formData.datos_json.limite_indemnizacion_valor}
+                                                onChange={(v: string) => handleJsonChange('limite_indemnizacion_valor', null, Number(v))}
+                                                icon={Icons.Money}
+                                                required
+                                                isCurrency
+                                            />
+                                            <Input
+                                                type="number"
+                                                label="Límite Indemnización ($) (Claims Made)"
+                                                value={formData.datos_json.limite_indemnizacion_claims_made_valor || 0}
+                                                onChange={(v: string) => handleJsonChange('limite_indemnizacion_claims_made_valor', null, Number(v))}
+                                                icon={Icons.Money}
+                                                required
+                                                isCurrency
+                                            />
+                                        </>
+                                    ) : (
+                                        <Input
+                                            type="number"
+                                            label="Límite Indemnización ($)"
+                                            value={formData.datos_json.limite_indemnizacion_valor}
+                                            onChange={(v: string) => handleJsonChange('limite_indemnizacion_valor', null, Number(v))}
+                                            icon={Icons.Money}
+                                            required
+                                            isCurrency
+                                        />
+                                    )}
                                     <Input
                                         type="number"
                                         label="Prima Anual ($)"
@@ -890,7 +925,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                             </div>
 
                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
-                                <SectionTitle title="Descuentos" />
+                                <SectionTitle title="Descuentos de Reaseguro" />
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <Input
                                         type="number"
@@ -928,51 +963,102 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
                                     <SectionTitle title="Retención Cedente" />
+                                    <div className="space-y-4">
+                                        <Input
+                                            type="number"
+                                            label="Porcentaje %"
+                                            value={formData.datos_json.retencion_cedente?.porcentaje}
+                                            onChange={(v: string) => handleJsonChange('retencion_cedente', 'porcentaje', Number(v))}
+                                            required
+                                            min={0}
+                                            max={100}
+                                            step={0.01}
+                                        />
+                                        <Input
+                                            type="number"
+                                            label="Base %"
+                                            value={formData.datos_json.retencion_cedente?.base}
+                                            onChange={(v: string) => handleJsonChange('retencion_cedente', 'base', Number(v))}
+                                            required
+                                            min={0}
+                                            max={100}
+                                            step={0.01}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
+                                    <SectionTitle title="Respaldo Reaseguro" />
+                                    <div className="space-y-4">
+                                        <Input
+                                            type="number"
+                                            label="Porcentaje %"
+                                            value={formData.datos_json.respaldo_reaseguro?.porcentaje}
+                                            onChange={(v: string) => handleJsonChange('respaldo_reaseguro', 'porcentaje', Number(v))}
+                                            required
+                                            min={0}
+                                            max={100}
+                                            step={0.01}
+                                        />
+                                        <Input
+                                            type="number"
+                                            label="Base %"
+                                            value={formData.datos_json.respaldo_reaseguro?.base}
+                                            onChange={(v: string) => handleJsonChange('respaldo_reaseguro', 'base', Number(v))}
+                                            required
+                                            min={0}
+                                            max={100}
+                                            step={0.01}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
+                                <SectionTitle title="Reserva de Primas" />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <Input
                                         type="number"
-                                        label="Porcentaje %"
-                                        value={formData.datos_json.retencion_cedente?.porcentaje}
-                                        onChange={(v: string) => handleJsonChange('retencion_cedente', 'porcentaje', Number(v))}
-                                        required
+                                        label="Porcentaje (%)"
+                                        value={formData.datos_json.reserva_primas?.porcentaje || 0}
+                                        onChange={(v: string) => handleJsonChange('reserva_primas', 'porcentaje', parseFloat(v))}
                                         min={0}
                                         max={100}
                                         step={0.01}
                                     />
-                                </div>
-                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
-                                    <SectionTitle title="Respaldo Reaseguro" />
                                     <Input
                                         type="number"
-                                        label="Porcentaje %"
-                                        value={formData.datos_json.respaldo_reaseguro?.porcentaje}
-                                        onChange={(v: string) => handleJsonChange('respaldo_reaseguro', 'porcentaje', Number(v))}
-                                        required
+                                        label="Días"
+                                        value={formData.datos_json.reserva_primas?.dias || 0}
+                                        onChange={(v: string) => handleJsonChange('reserva_primas', 'dias', parseInt(v))}
                                         min={0}
-                                        max={100}
-                                        step={0.01}
                                     />
                                 </div>
                             </div>
 
                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
-                                <SectionTitle title="Otros Detalles" />
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <Input
-                                        label="Impuestos (Nombre Reasegurador)"
-                                        value={formData.datos_json.impuestos_nombre_reasegurador || ''}
-                                        onChange={(v: string) => handleJsonChange('impuestos_nombre_reasegurador', null, v)}
-                                        required
-                                    />
-                                    <Input
-                                        type="number"
-                                        label="Garantía Pago Primas (Días)"
-                                        value={formData.datos_json.garantia_pago_primas_dias}
-                                        onChange={(v: string) => handleJsonChange('garantia_pago_primas_dias', null, parseInt(v))}
-                                        required
-                                    />
-                                </div>
+                                <SectionTitle title="Impuestos" />
+                                <Input
+                                    label="IMPUESTOS A CARGO DEL REASEGURADOR"
+                                    value={formData.datos_json.impuestos_nombre_reasegurador || ''}
+                                    onChange={(v: string) => handleJsonChange('impuestos_nombre_reasegurador', null, v)}
+                                    required
+                                />
+                            </div>
 
-                                <div className="mt-6">
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
+                                <SectionTitle title="Garantía de Pago" />
+                                <Input
+                                    type="number"
+                                    label="Garantía Pago Primas (Días)"
+                                    value={formData.datos_json.garantia_pago_primas_dias}
+                                    onChange={(v: string) => handleJsonChange('garantia_pago_primas_dias', null, parseInt(v))}
+                                    required
+                                />
+                            </div>
+
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
+                                <SectionTitle title="Intermediario" />
+                                <div className="mt-4">
                                     <label className="block text-sm font-medium text-zinc-700 mb-1.5">Cláusula Intermediario *</label>
                                     <textarea
                                         className="w-full rounded-xl border-zinc-200 bg-zinc-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 p-4"

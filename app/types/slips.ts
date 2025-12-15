@@ -53,12 +53,13 @@ export interface SlipDataJson {
         sublimite_evento_cop: number;
     };
     limite_indemnizacion_valor: number;
+    limite_indemnizacion_claims_made_valor?: number;
     limite_indemnizacion?: number; // Added for backend compatibility
     prima_anual_valor: number;
     deducibles: {
         porcentaje_valor_perdida: number;
         minimo_cop: number;
-        gastos_defensa_texto: string;
+        gastos_defensa_porcentaje: number;
     };
     descuentos?: {
         porcentaje_total: number;
@@ -73,6 +74,10 @@ export interface SlipDataJson {
     respaldo_reaseguro?: {
         porcentaje: number;
         base: number;
+    };
+    reserva_primas?: {
+        porcentaje: number;
+        dias: number;
     };
     garantia_pago_primas_dias: number;
     clausula_intermediario?: string;
