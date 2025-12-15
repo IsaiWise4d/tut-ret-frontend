@@ -15,6 +15,8 @@ export interface Slip {
     updated_at?: string;
 }
 
+import { User } from "./auth";
+
 export interface SlipHistory {
     id: number;
     slip_id: number;
@@ -23,6 +25,7 @@ export interface SlipHistory {
     tipo_cambio: 'CREACION' | 'ACTUALIZACION';
     created_at: string;
     created_by_id?: number;
+    created_by?: User;
 }
 
 // Estructura anidada compleja (datos_json)

@@ -64,6 +64,11 @@ export default function SlipHistoryModal({ isOpen, onClose, history, isLoading }
                                                 <span className="text-xs text-gray-400">
                                                     {format(new Date(entry.created_at), "d 'de' MMMM, yyyy HH:mm", { locale: es })}
                                                 </span>
+                                                {entry.created_by && (
+                                                    <span className="text-xs text-gray-500 font-medium border-l border-gray-300 pl-2 ml-1">
+                                                        Por: {entry.created_by.full_name || entry.created_by.username}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
 
