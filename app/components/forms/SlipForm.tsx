@@ -477,6 +477,14 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                     anios: formData.datos_json.retroactividad?.anios || '',
                     fecha_inicio: formData.datos_json.retroactividad?.fecha_inicio || undefined,
                     fecha_fin: formData.datos_json.retroactividad?.fecha_fin || undefined
+                },
+                retencion_cedente: {
+                    ...formData.datos_json.retencion_cedente,
+                    base: 100
+                },
+                respaldo_reaseguro: {
+                    ...formData.datos_json.respaldo_reaseguro,
+                    base: 100
                 }
             }
         };
@@ -535,9 +543,11 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
         }
 
         if (currentStep === 3) {
-            if (!isNonEmpty(formData.datos_json.retroactividad?.anios)) missing.push('Retroactividad (Años)');
-            if (!isDate(formData.datos_json.retroactividad?.fecha_inicio)) missing.push('Retroactividad (Fecha Inicio)');
-            if (!isDate(formData.datos_json.retroactividad?.fecha_fin)) missing.push('Retroactividad (Fecha Fin)');
+            if (formData.tipo_slip !== 'OCURRENCIA') {
+                if (!isNonEmpty(formData.datos_json.retroactividad?.anios)) missing.push('Retroactividad (Años)');
+                if (!isDate(formData.datos_json.retroactividad?.fecha_inicio)) missing.push('Retroactividad (Fecha Inicio)');
+                if (!isDate(formData.datos_json.retroactividad?.fecha_fin)) missing.push('Retroactividad (Fecha Fin)');
+            }
 
             if (!isPercent(formData.datos_json.gastos_defensa?.porcentaje_limite)) missing.push('Gastos de Defensa (% Límite: 1-100)');
             if (!isPositive(formData.datos_json.gastos_defensa?.sublimite_evento_cop)) missing.push('Gastos de Defensa (Sublímite COP)');
@@ -661,8 +671,12 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                             className="w-full rounded-xl border-zinc-200 bg-zinc-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 py-2.5 px-4"
                                             value={formData.tipo_slip}
                                             onChange={e => {
-                                                handleChange('tipo_slip', e.target.value);
-                                                handleJsonChange('tipo_cobertura', null, e.target.value);
+                                                const val = e.target.value;
+                                                handleChange('tipo_slip', val);
+                                                handleJsonChange('tipo_cobertura', null, val);
+                                                if (val === 'OCURRENCIA') {
+                                                    handleJsonChange('retroactividad', null, null);
+                                                }
                                             }}
                                         >
                                             <option value="CLAIMS_MADE">Claims Made</option>
@@ -782,34 +796,36 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
 
                     {step === 3 && (
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
-                                <SectionTitle title="Retroactividad" subtitle="Configuración de fechas retroactivas." />
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <Input
-                                        label="Años"
-                                        value={formData.datos_json.retroactividad?.anios || ''}
-                                        onChange={(v: string) => handleJsonChange('retroactividad', 'anios', v)}
-                                        placeholder="Ej. 2 años"
-                                        required
-                                    />
-                                    <Input
-                                        type="date"
-                                        label="Fecha Inicio"
-                                        value={formData.datos_json.retroactividad?.fecha_inicio || ''}
-                                        onChange={(v: string) => handleJsonChange('retroactividad', 'fecha_inicio', v)}
-                                        icon={Icons.Calendar}
-                                        required
-                                    />
-                                    <Input
-                                        type="date"
-                                        label="Fecha Fin"
-                                        value={formData.datos_json.retroactividad?.fecha_fin || ''}
-                                        onChange={(v: string) => handleJsonChange('retroactividad', 'fecha_fin', v)}
-                                        icon={Icons.Calendar}
-                                        required
-                                    />
+                            {formData.tipo_slip !== 'OCURRENCIA' && (
+                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
+                                    <SectionTitle title="Retroactividad" subtitle="Configuración de fechas retroactivas." />
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <Input
+                                            label="Años"
+                                            value={formData.datos_json.retroactividad?.anios || ''}
+                                            onChange={(v: string) => handleJsonChange('retroactividad', 'anios', v)}
+                                            placeholder="Ej. 2 años"
+                                            required
+                                        />
+                                        <Input
+                                            type="date"
+                                            label="Fecha Inicio"
+                                            value={formData.datos_json.retroactividad?.fecha_inicio || ''}
+                                            onChange={(v: string) => handleJsonChange('retroactividad', 'fecha_inicio', v)}
+                                            icon={Icons.Calendar}
+                                            required
+                                        />
+                                        <Input
+                                            type="date"
+                                            label="Fecha Fin"
+                                            value={formData.datos_json.retroactividad?.fecha_fin || ''}
+                                            onChange={(v: string) => handleJsonChange('retroactividad', 'fecha_fin', v)}
+                                            icon={Icons.Calendar}
+                                            required
+                                        />
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
                                 <SectionTitle title="Gastos de Defensa" />
@@ -974,16 +990,6 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                             max={100}
                                             step={0.01}
                                         />
-                                        <Input
-                                            type="number"
-                                            label="Base %"
-                                            value={formData.datos_json.retencion_cedente?.base}
-                                            onChange={(v: string) => handleJsonChange('retencion_cedente', 'base', Number(v))}
-                                            required
-                                            min={0}
-                                            max={100}
-                                            step={0.01}
-                                        />
                                     </div>
                                 </div>
                                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
@@ -994,16 +1000,6 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                             label="Porcentaje %"
                                             value={formData.datos_json.respaldo_reaseguro?.porcentaje}
                                             onChange={(v: string) => handleJsonChange('respaldo_reaseguro', 'porcentaje', Number(v))}
-                                            required
-                                            min={0}
-                                            max={100}
-                                            step={0.01}
-                                        />
-                                        <Input
-                                            type="number"
-                                            label="Base %"
-                                            value={formData.datos_json.respaldo_reaseguro?.base}
-                                            onChange={(v: string) => handleJsonChange('respaldo_reaseguro', 'base', Number(v))}
                                             required
                                             min={0}
                                             max={100}

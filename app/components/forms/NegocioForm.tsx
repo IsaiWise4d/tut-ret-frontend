@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Asegurado, Ubicacion } from '@/app/types/asegurados';
-import { Negocio, CreateNegocioData, UpdateNegocioData, CorredorReaseguros, CompaniaSeguros } from '@/app/types/negocios';
-import { getUbicaciones, createNegocio, updateNegocio, searchAsegurados, getCorredoresReaseguros, getCompaniasSeguros } from '@/app/lib/api';
+import { Negocio, CreateNegocioData, UpdateNegocioData, CorredorReaseguros, CompaniaSeguros, Broker } from '@/app/types/negocios';
+import { getUbicaciones, createNegocio, updateNegocio, searchAsegurados, getCorredoresReaseguros, getCompaniasSeguros, getBrokers } from '@/app/lib/api';
 
 interface NegocioFormProps {
     initialData?: Negocio;
@@ -17,10 +17,12 @@ export default function NegocioForm({ initialData, onSuccess, onCancel }: Negoci
     const [ubicacionId, setUbicacionId] = useState<number>(initialData?.ubicacion_id || 0);
     const [corredorId, setCorredorId] = useState<number>(initialData?.corredor_id || 0);
     const [companiaId, setCompaniaId] = useState<number>(initialData?.compania_id || 0);
+    const [brokerId, setBrokerId] = useState<number>(initialData?.broker_id || 0);
 
     // Lists
     const [corredoresList, setCorredoresList] = useState<CorredorReaseguros[]>([]);
     const [companiasList, setCompaniasList] = useState<CompaniaSeguros[]>([]);
+    const [brokersList, setBrokersList] = useState<Broker[]>([]);
 
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
@@ -41,9 +43,10 @@ export default function NegocioForm({ initialData, onSuccess, onCancel }: Negoci
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [c, co] = await Promise.all([getCorredoresReaseguros(), getCompaniasSeguros()]);
+                const [c, co, b] = await Promise.all([getCorredoresReaseguros(), getCompaniasSeguros(), getBrokers()]);
                 setCorredoresList(c);
                 setCompaniasList(co);
+                setBrokersList(b);
             } catch (e) {
                 console.error("Error fetching lists", e);
             }
@@ -126,6 +129,7 @@ export default function NegocioForm({ initialData, onSuccess, onCancel }: Negoci
                 const updateData: UpdateNegocioData = {
                     corredor_id: corredorId,
                     compania_id: companiaId,
+                    broker_id: brokerId || undefined,
                 };
                 await updateNegocio(initialData.id, updateData);
             } else {
@@ -133,7 +137,8 @@ export default function NegocioForm({ initialData, onSuccess, onCancel }: Negoci
                     asegurado_id: aseguradoId,
                     ubicacion_id: ubicacionId,
                     corredor_id: corredorId,
-                    compania_id: companiaId
+                    compania_id: companiaId,
+                    broker_id: brokerId || undefined
                 };
                 await createNegocio(createData);
             }
@@ -301,6 +306,31 @@ export default function NegocioForm({ initialData, onSuccess, onCancel }: Negoci
                             <option value={0}>Seleccione una Compañía</option>
                             {companiasList.map((c) => (
                                 <option key={c.id} value={c.id}>{c.nombre}</option>
+                            ))}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Broker (Opcional) */}
+                <div>
+                    <label htmlFor="broker" className="block text-base font-bold text-gray-800 mb-2">
+                        Broker (Intermediario) <span className="text-sm font-normal text-gray-500">(Opcional)</span>
+                    </label>
+                    <div className="relative">
+                        <select
+                            id="broker"
+                            value={brokerId}
+                            onChange={(e) => setBrokerId(Number(e.target.value))}
+                            className="block w-full rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base py-4 px-5 bg-gray-50 focus:bg-white transition-colors duration-200 appearance-none"
+                        >
+                            <option value={0}>Seleccione un Broker</option>
+                            {brokersList.map((b) => (
+                                <option key={b.id} value={b.id}>{b.nombre}</option>
                             ))}
                         </select>
                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">

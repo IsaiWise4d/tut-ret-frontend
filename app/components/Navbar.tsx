@@ -116,6 +116,13 @@ export default function Navbar() {
                           >
                             Compañías de Seguros
                           </Link>
+                          <Link
+                            href="/admin/brokers"
+                            onClick={() => setShowAdminMenu(false)}
+                            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50"
+                          >
+                            Brokers
+                          </Link>
                         </div>
                       </div>
                     </>

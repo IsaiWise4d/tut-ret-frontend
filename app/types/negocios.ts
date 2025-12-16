@@ -4,6 +4,12 @@ export interface CorredorReaseguros {
   direccion?: string;
 }
 
+export interface Broker {
+  id: number;
+  nombre: string;
+  direccion?: string;
+}
+
 export interface CompaniaSeguros {
   id: number;
   nombre: string;
@@ -17,8 +23,10 @@ export interface Negocio {
   ubicacion_id: number;
   corredor_id: number;
   compania_id: number;
+  broker_id?: number;
   corredor?: CorredorReaseguros;
   compania?: CompaniaSeguros;
+  broker?: Broker;
   created_at: string;
   updated_at: string | null;
 }
@@ -28,11 +36,13 @@ export interface CreateNegocioData {
   ubicacion_id: number;
   corredor_id: number;
   compania_id: number;
+  broker_id?: number;
 }
 
 export interface UpdateNegocioData {
   corredor_id?: number;
   compania_id?: number;
+  broker_id?: number;
 }
 
 export interface NegocioHistory {

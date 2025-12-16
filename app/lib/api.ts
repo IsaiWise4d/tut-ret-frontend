@@ -1,6 +1,6 @@
 import { LoginResponse, User, CreateUserData, ApiResponse } from '@/app/types/auth';
 import { Asegurado, CreateAseguradoData, Ubicacion, CreateUbicacionData } from '@/app/types/asegurados';
-import { Negocio, CreateNegocioData, UpdateNegocioData, NegocioHistory, CorredorReaseguros, CompaniaSeguros } from '@/app/types/negocios';
+import { Negocio, CreateNegocioData, UpdateNegocioData, NegocioHistory, CorredorReaseguros, CompaniaSeguros, Broker } from '@/app/types/negocios';
 
 import { Slip, CreateSlipData, UpdateSlipData, SlipHistory } from '@/app/types/slips';
 
@@ -327,6 +327,43 @@ export async function deleteCorredorReaseguros(id: number): Promise<void> {
   });
   if (!response.ok) {
     throw new Error('Error al eliminar corredor');
+  }
+}
+
+// BROKERS
+export async function getBrokers(): Promise<Broker[]> {
+  const response = await fetch(`${API_BASE_URL}/brokers/`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+  return handleResponse<Broker[]>(response);
+}
+
+export async function createBroker(data: { nombre: string; direccion?: string }): Promise<Broker> {
+  const response = await fetch(`${API_BASE_URL}/brokers/`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse<Broker>(response);
+}
+
+export async function updateBroker(id: number, data: { nombre?: string; direccion?: string }): Promise<Broker> {
+  const response = await fetch(`${API_BASE_URL}/brokers/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse<Broker>(response);
+}
+
+export async function deleteBroker(id: number): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/brokers/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    throw new Error('Error al eliminar broker');
   }
 }
 

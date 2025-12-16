@@ -212,6 +212,7 @@ function NegociosContent() {
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Ubicación</th>
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Corredor</th>
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Compañía</th>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Broker</th>
                                             <th scope="col" className="relative px-6 py-3">
                                                 <span className="sr-only">Acciones</span>
                                             </th>
@@ -220,7 +221,7 @@ function NegociosContent() {
                                     <tbody className="divide-y divide-zinc-200 bg-white">
                                         {loading ? (
                                             <tr>
-                                                <td colSpan={6} className="px-6 py-12 text-center text-sm text-zinc-500">
+                                                <td colSpan={7} className="px-6 py-12 text-center text-sm text-zinc-500">
                                                     <div className="flex justify-center">
                                                         <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
                                                     </div>
@@ -228,7 +229,7 @@ function NegociosContent() {
                                             </tr>
                                         ) : negocios.length === 0 ? (
                                             <tr>
-                                                <td colSpan={6} className="px-6 py-12 text-center text-sm text-zinc-500">
+                                                <td colSpan={7} className="px-6 py-12 text-center text-sm text-zinc-500">
                                                     {searchQuery ? 'No se encontraron negocios con tu búsqueda.' : 'No hay negocios registrados. Seleccione "Crear Nuevo Negocio" para comenzar.'}
                                                 </td>
                                             </tr>
@@ -249,6 +250,9 @@ function NegociosContent() {
                                                     </td>
                                                     <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-500">
                                                         {negocio.compania?.nombre || '-'}
+                                                    </td>
+                                                    <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-500">
+                                                        {negocio.broker?.nombre || '-'}
                                                     </td>
                                                     <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
                                                         <button
