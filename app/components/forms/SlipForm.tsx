@@ -483,7 +483,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                     base: 100
                 },
                 respaldo_reaseguro: {
-                    ...formData.datos_json.respaldo_reaseguro,
+                    porcentaje: formData.datos_json.respaldo_reaseguro?.porcentaje || 0,
                     base: 100
                 }
             }
