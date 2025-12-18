@@ -30,6 +30,7 @@ const initialSlipData: CreateSlipData = {
         gastos_defensa: { porcentaje_limite: 0, sublimite_evento_cop: 0 },
         limite_indemnizacion_valor: 0,
         limite_indemnizacion_claims_made_valor: 0,
+        limite_indemnizacion_ocurrencia_valor: 0,
         prima_anual_valor: 0,
         deducibles: { porcentaje_valor_perdida: 0, minimo_cop: 0, gastos_defensa_porcentaje: 0 },
         descuentos: { porcentaje_total: 0, porcentaje_comision_cedente: 0, porcentaje_intermediario: 0 },
@@ -209,8 +210,57 @@ function NegocioSearchInput({ selectedNegocioId, onSelect }: NegocioSearchInputP
     );
 }
 
+// Toast Component
+const Toast = ({ messages, onClose }: { messages: string[], onClose: () => void }) => {
+    useEffect(() => {
+        if (messages.length > 0) {
+            const timer = setTimeout(onClose, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [messages, onClose]);
+
+    if (messages.length === 0) return null;
+
+    return (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 max-w-lg w-full bg-white border border-zinc-200 border-l-4 border-l-red-500 shadow-2xl rounded-xl pointer-events-auto animate-in slide-in-from-top-4 fade-in duration-300">
+            <div className="p-4">
+                <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 pt-0.5">
+                        <div className="w-8 h-8 bg-red-50 rounded-full flex items-center justify-center">
+                            <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div className="flex-1 pt-1">
+                        <h3 className="text-sm font-semibold text-zinc-900">
+                            Por favor corrige los siguientes errores
+                        </h3>
+                        <ul className="mt-2 text-sm text-zinc-600 list-disc list-inside space-y-1 max-h-60 overflow-y-auto">
+                            {messages.map((msg, idx) => (
+                                <li key={idx}>{msg}</li>
+                            ))}
+                        </ul>
+                    </div>
+                    <div className="flex-shrink-0 ml-2">
+                        <button
+                            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-zinc-200"
+                            onClick={onClose}
+                        >
+                            <span className="sr-only">Cerrar</span>
+                            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L10 8.586 5.707 4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // Reusable Components (Moved outside SlipForm)
-const Input = ({ label, value, onChange, type = "text", required = false, icon: Icon, placeholder, disabled = false, min, max, step, isCurrency = false }: any) => {
+const Input = ({ label, value, onChange, type = "text", required = false, icon: Icon, placeholder, disabled = false, min, max, step, isCurrency = false, hasError = false }: any) => {
     const isNumber = type === 'number' || isCurrency;
     const hasMin = typeof min === 'number' && Number.isFinite(min);
     const hasMax = typeof max === 'number' && Number.isFinite(max);
@@ -335,10 +385,12 @@ const Input = ({ label, value, onChange, type = "text", required = false, icon: 
 
     return (
         <div className="group">
-            <label className="block text-sm font-medium text-zinc-700 mb-1.5">{label} {required && <span className="text-red-500">*</span>}</label>
+            <label className={`block text-sm font-medium mb-1.5 ${hasError ? 'text-red-600' : 'text-zinc-700'}`}>
+                {label} {required && <span className="text-red-500">*</span>}
+            </label>
             <div className="relative">
                 {Icon && (
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none ${hasError ? 'text-red-400' : ''}`}>
                         <Icon />
                     </div>
                 )}
@@ -360,7 +412,11 @@ const Input = ({ label, value, onChange, type = "text", required = false, icon: 
                     min={min}
                     max={max}
                     step={step}
-                    className={`w-full rounded-xl border-zinc-200 bg-zinc-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 py-2.5 ${Icon ? 'pl-10' : 'px-4'} ${disabled ? 'opacity-60 cursor-not-allowed bg-zinc-100 text-zinc-500' : ''}`}
+                    className={`w-full rounded-xl transition-all duration-200 py-2.5 ${Icon ? 'pl-10' : 'px-4'} ${
+                        hasError 
+                            ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-200 text-red-900 placeholder-red-300' 
+                            : 'border-zinc-200 bg-zinc-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
+                    } ${disabled ? 'opacity-60 cursor-not-allowed bg-zinc-100 text-zinc-500' : ''}`}
                 />
             </div>
         </div>
@@ -379,6 +435,21 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
     const [formData, setFormData] = useState<CreateSlipData>(initialSlipData);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [toastErrors, setToastErrors] = useState<string[]>([]);
+    const [fieldErrors, setFieldErrors] = useState<Set<string>>(new Set());
+    const [isDirty, setIsDirty] = useState(false);
+
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (isDirty) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [isDirty]);
 
     useEffect(() => {
         if (initialData) {
@@ -396,6 +467,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
 
     const handleChange = (field: keyof CreateSlipData, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+        setIsDirty(true);
     };
 
     const handleJsonChange = (category: keyof typeof formData.datos_json | string, field: string | null, value: any) => {
@@ -412,6 +484,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
             }
             return { ...prev, datos_json: newJson };
         });
+        setIsDirty(true);
     };
 
     const handleNegocioSelect = async (negocioId: string) => {
@@ -462,6 +535,17 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        // Validate current step before submitting
+        const { isValid, errors, failedFields } = validateStep(step);
+        if (!isValid) {
+            setFieldErrors(new Set(failedFields));
+            setToastErrors(errors);
+            return;
+        }
+        setFieldErrors(new Set());
+        setToastErrors([]);
+
         setIsSubmitting(true);
         setError(null);
 
@@ -498,6 +582,8 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
         // Clean up base_cobertura_hibrido if tipo is not HIBRIDO
         if (formData.tipo_slip !== 'HIBRIDO') {
             delete finalData.datos_json.base_cobertura_hibrido;
+            delete finalData.datos_json.limite_indemnizacion_ocurrencia_valor;
+            delete finalData.datos_json.limite_indemnizacion_claims_made_valor;
         }
 
         try {
@@ -515,7 +601,8 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
     };
 
     const validateStep = (currentStep: number) => {
-        const missing: string[] = [];
+        const errors: string[] = [];
+        const failedFields: string[] = [];
 
         const isNonEmpty = (v: unknown) => typeof v === 'string' && v.trim().length > 0;
         const isDate = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
@@ -523,80 +610,99 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
         const isPercent = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= 100;
 
         if (currentStep === 1) {
-            if (!isNonEmpty(formData.tipo_slip)) missing.push('Tipo de Slip');
-            if (!isNonEmpty(formData.nombre_asegurado)) missing.push('Nombre Asegurado');
-            if (!isDate(formData.vigencia_inicio)) missing.push('Vigencia Inicio');
-            if (!isDate(formData.vigencia_fin)) missing.push('Vigencia Fin');
+            if (!isNonEmpty(formData.tipo_slip)) { errors.push('Tipo de Slip es requerido'); failedFields.push('tipo_slip'); }
+            if (!isNonEmpty(formData.nombre_asegurado)) { errors.push('Nombre Asegurado es requerido'); failedFields.push('nombre_asegurado'); }
+            if (!isDate(formData.vigencia_inicio)) { errors.push('Vigencia Inicio es requerida'); failedFields.push('vigencia_inicio'); }
+            if (!isDate(formData.vigencia_fin)) { errors.push('Vigencia Fin es requerida'); failedFields.push('vigencia_fin'); }
 
             if (formData.tipo_slip === 'HIBRIDO') {
-                if (!isNonEmpty(formData.datos_json.base_cobertura_hibrido?.anios)) missing.push('Años (Base Cobertura Híbrido)');
-                if (!isDate(formData.datos_json.base_cobertura_hibrido?.fecha)) missing.push('Fecha (Base Cobertura Híbrido)');
+                if (!isNonEmpty(formData.datos_json.base_cobertura_hibrido?.anios)) { errors.push('Años (Base Cobertura Híbrido) es requerido'); failedFields.push('base_cobertura_hibrido.anios'); }
+                if (!isDate(formData.datos_json.base_cobertura_hibrido?.fecha)) { errors.push('Fecha (Base Cobertura Híbrido) es requerida'); failedFields.push('base_cobertura_hibrido.fecha'); }
             }
         }
 
         if (currentStep === 2) {
-            if (!isNonEmpty(formData.datos_json.asegurado.razon_social)) missing.push('Razón Social');
-            if (!isNonEmpty(formData.datos_json.asegurado.identificacion_nit)) missing.push('NIT / Identificación');
-            if (!isNonEmpty(formData.datos_json.asegurado.ubicacion)) missing.push('Ubicación');
-            if (!isNonEmpty(formData.datos_json.reasegurado.nombre)) missing.push('Nombre Reaseguradora');
-            if (!isNonEmpty(formData.datos_json.reasegurado.direccion)) missing.push('Dirección Reaseguradora');
+            if (!isNonEmpty(formData.datos_json.asegurado.razon_social)) { errors.push('Razón Social es requerida'); failedFields.push('asegurado.razon_social'); }
+            if (!isNonEmpty(formData.datos_json.asegurado.identificacion_nit)) { errors.push('NIT / Identificación es requerido'); failedFields.push('asegurado.identificacion_nit'); }
+            if (!isNonEmpty(formData.datos_json.asegurado.ubicacion)) { errors.push('Ubicación es requerida'); failedFields.push('asegurado.ubicacion'); }
+            if (!isNonEmpty(formData.datos_json.reasegurado.nombre)) { errors.push('Nombre Reaseguradora es requerido'); failedFields.push('reasegurado.nombre'); }
+            if (!isNonEmpty(formData.datos_json.reasegurado.direccion)) { errors.push('Dirección Reaseguradora es requerida'); failedFields.push('reasegurado.direccion'); }
         }
 
         if (currentStep === 3) {
             if (formData.tipo_slip !== 'OCURRENCIA') {
-                if (!isNonEmpty(formData.datos_json.retroactividad?.anios)) missing.push('Retroactividad (Años)');
-                if (!isDate(formData.datos_json.retroactividad?.fecha_inicio)) missing.push('Retroactividad (Fecha Inicio)');
-                if (!isDate(formData.datos_json.retroactividad?.fecha_fin)) missing.push('Retroactividad (Fecha Fin)');
+                if (!isNonEmpty(formData.datos_json.retroactividad?.anios)) { errors.push('Retroactividad (Años) es requerido'); failedFields.push('retroactividad.anios'); }
+                if (!isDate(formData.datos_json.retroactividad?.fecha_inicio)) { errors.push('Retroactividad (Fecha Inicio) es requerida'); failedFields.push('retroactividad.fecha_inicio'); }
+                if (!isDate(formData.datos_json.retroactividad?.fecha_fin)) { errors.push('Retroactividad (Fecha Fin) es requerida'); failedFields.push('retroactividad.fecha_fin'); }
             }
 
-            if (!isPercent(formData.datos_json.gastos_defensa?.porcentaje_limite)) missing.push('Gastos de Defensa (% Límite: 1-100)');
-            if (!isPositive(formData.datos_json.gastos_defensa?.sublimite_evento_cop)) missing.push('Gastos de Defensa (Sublímite COP)');
+            if (!isPositive(formData.datos_json.limite_indemnizacion_valor)) { errors.push('Límite Indemnización es requerido'); failedFields.push('limite_indemnizacion_valor'); }
 
-            if (!isPercent(formData.datos_json.deducibles.porcentaje_valor_perdida)) missing.push('Deducibles (% Pérdida: 1-100)');
-            if (!isPositive(formData.datos_json.deducibles.minimo_cop)) missing.push('Deducibles (Mínimo COP)');
-            if (!isPercent(formData.datos_json.deducibles.gastos_defensa_porcentaje)) missing.push('Deducibles (Gastos Defensa %: 1-100)');
+            if (!isPercent(formData.datos_json.gastos_defensa?.porcentaje_limite)) { errors.push('Gastos de Defensa (% Límite) debe ser entre 1 y 100'); failedFields.push('gastos_defensa.porcentaje_limite'); }
+            if (!isPositive(formData.datos_json.gastos_defensa?.sublimite_evento_cop)) { errors.push('Gastos de Defensa (Sublímite COP) es requerido'); failedFields.push('gastos_defensa.sublimite_evento_cop'); }
+
+            if (!isPercent(formData.datos_json.deducibles.porcentaje_valor_perdida)) { errors.push('Deducibles (% Pérdida) debe ser entre 1 y 100'); failedFields.push('deducibles.porcentaje_valor_perdida'); }
+            if (!isPositive(formData.datos_json.deducibles.minimo_cop)) { errors.push('Deducibles (Mínimo COP) es requerido'); failedFields.push('deducibles.minimo_cop'); }
+            if (!isPercent(formData.datos_json.deducibles.gastos_defensa_porcentaje)) { errors.push('Deducibles (Gastos Defensa %) debe ser entre 1 y 100'); failedFields.push('deducibles.gastos_defensa_porcentaje'); }
         }
 
         if (currentStep === 4) {
             if (formData.tipo_slip === 'HIBRIDO') {
-                if (!isPositive(formData.datos_json.limite_indemnizacion_valor)) missing.push('Límite Indemnización (Ocurrencia)');
-                if (!isPositive(formData.datos_json.limite_indemnizacion_claims_made_valor)) missing.push('Límite Indemnización (Claims Made)');
-            } else {
-                if (!isPositive(formData.datos_json.limite_indemnizacion_valor)) missing.push('Límite Indemnización');
+                if (!isPositive(formData.datos_json.limite_indemnizacion_ocurrencia_valor)) { errors.push('Límite Indemnización (Ocurrencia) es requerido'); failedFields.push('limite_indemnizacion_ocurrencia_valor'); }
+                if (!isPositive(formData.datos_json.limite_indemnizacion_claims_made_valor)) { errors.push('Límite Indemnización (Claims Made) es requerido'); failedFields.push('limite_indemnizacion_claims_made_valor'); }
+
+                const ocurrencia = formData.datos_json.limite_indemnizacion_ocurrencia_valor || 0;
+                const claims = formData.datos_json.limite_indemnizacion_claims_made_valor || 0;
+                const total = formData.datos_json.limite_indemnizacion_valor || 0;
+                
+                if (ocurrencia + claims > total) {
+                    errors.push('La suma de los límites (Ocurrencia + Claims Made) excede el Límite Total');
+                    failedFields.push('limite_indemnizacion_ocurrencia_valor');
+                    failedFields.push('limite_indemnizacion_claims_made_valor');
+                }
             }
             
-            if (!isPositive(formData.datos_json.prima_anual_valor)) missing.push('Prima Anual');
+            if (!isPositive(formData.datos_json.prima_anual_valor)) { errors.push('Prima Anual es requerida'); failedFields.push('prima_anual_valor'); }
 
-            if (!isPercent(formData.datos_json.descuentos?.porcentaje_total)) missing.push('Descuentos (% Total: 1-100)');
-            if (!isPercent(formData.datos_json.descuentos?.porcentaje_comision_cedente)) missing.push('Descuentos (% Comisión Cedente: 1-100)');
-            if (!isPercent(formData.datos_json.descuentos?.porcentaje_intermediario)) missing.push('Descuentos (% Intermediario: 1-100)');
+            if (!isPercent(formData.datos_json.descuentos?.porcentaje_total)) { errors.push('Descuentos (% Total) debe ser entre 1 y 100'); failedFields.push('descuentos.porcentaje_total'); }
+            if (!isPercent(formData.datos_json.descuentos?.porcentaje_comision_cedente)) { errors.push('Descuentos (% Comisión Cedente) debe ser entre 1 y 100'); failedFields.push('descuentos.porcentaje_comision_cedente'); }
+            if (!isPercent(formData.datos_json.descuentos?.porcentaje_intermediario)) { errors.push('Descuentos (% Intermediario) debe ser entre 1 y 100'); failedFields.push('descuentos.porcentaje_intermediario'); }
 
-            if (!isPercent(formData.datos_json.retencion_cedente?.porcentaje)) missing.push('Retención Cedente (Porcentaje: 1-100)');
-            if (!isPercent(formData.datos_json.respaldo_reaseguro?.porcentaje)) missing.push('Respaldo Reaseguro (Porcentaje: 1-100)');
+            if (!isPercent(formData.datos_json.retencion_cedente?.porcentaje)) { errors.push('Retención Cedente (Porcentaje) debe ser entre 1 y 100'); failedFields.push('retencion_cedente.porcentaje'); }
+            if (!isPercent(formData.datos_json.respaldo_reaseguro?.porcentaje)) { errors.push('Respaldo Reaseguro (Porcentaje) debe ser entre 1 y 100'); failedFields.push('respaldo_reaseguro.porcentaje'); }
 
-            if (!isNonEmpty(formData.datos_json.impuestos_nombre_reasegurador)) missing.push('Impuestos (Nombre Reasegurador)');
-            if (!isPositive(formData.datos_json.garantia_pago_primas_dias)) missing.push('Garantía Pago Primas (Días)');
-            if (!isNonEmpty(formData.datos_json.clausula_intermediario)) missing.push('Cláusula Intermediario');
+            if (!isNonEmpty(formData.datos_json.impuestos_nombre_reasegurador)) { errors.push('Impuestos (Nombre Reasegurador) es requerido'); failedFields.push('impuestos_nombre_reasegurador'); }
+            if (!isPositive(formData.datos_json.garantia_pago_primas_dias)) { errors.push('Garantía Pago Primas (Días) es requerido'); failedFields.push('garantia_pago_primas_dias'); }
+            if (!isNonEmpty(formData.datos_json.clausula_intermediario)) { errors.push('Cláusula Intermediario es requerida'); failedFields.push('clausula_intermediario'); }
         }
 
-        if (missing.length > 0) {
-            return `Completa los campos requeridos: ${missing.join(', ')}`;
-        }
-
-        return null;
+        return { isValid: errors.length === 0, errors, failedFields };
     };
 
     const nextStep = () => {
-        const errorMsg = validateStep(step);
-        if (errorMsg) {
-            setError(errorMsg);
+        const { isValid, errors, failedFields } = validateStep(step);
+        if (!isValid) {
+            setFieldErrors(new Set(failedFields));
+            setToastErrors(errors);
             return;
         }
+        setFieldErrors(new Set());
+        setToastErrors([]);
         setError(null);
         setStep(s => s + 1);
     };
 
     const prevStep = () => setStep(s => s - 1);
+
+    const handleCancel = () => {
+        if (isDirty) {
+            if (window.confirm('Tienes cambios sin guardar. ¿Estás seguro de que quieres salir?')) {
+                onCancel();
+            }
+        } else {
+            onCancel();
+        }
+    };
 
     return (
         <form onSubmit={handleSubmit} className="w-full flex flex-col">
@@ -692,6 +798,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                                 onChange={(v: string) => handleJsonChange('base_cobertura_hibrido', 'anios', v)}
                                                 placeholder="Ej. 5"
                                                 required
+                                                hasError={fieldErrors.has('base_cobertura_hibrido.anios')}
                                             />
                                             <Input
                                                 type="date"
@@ -700,6 +807,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                                 onChange={(v: string) => handleJsonChange('base_cobertura_hibrido', 'fecha', v)}
                                                 icon={Icons.Calendar}
                                                 required
+                                                hasError={fieldErrors.has('base_cobertura_hibrido.fecha')}
                                             />
                                         </div>
                                     )}
@@ -711,6 +819,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         icon={Icons.Building}
                                         placeholder="Ej. Constructora Principal S.A."
                                         disabled={!!formData.negocio_id}
+                                        hasError={fieldErrors.has('nombre_asegurado')}
                                     />
                                 </div>
 
@@ -725,6 +834,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         }}
                                         required
                                         icon={Icons.Calendar}
+                                        hasError={fieldErrors.has('vigencia_inicio')}
                                     />
                                     <Input
                                         type="date"
@@ -736,6 +846,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         }}
                                         required
                                         icon={Icons.Calendar}
+                                        hasError={fieldErrors.has('vigencia_fin')}
                                     />
                                 </div>
                             </div>
@@ -754,6 +865,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         icon={Icons.Building}
                                         disabled={!!formData.negocio_id}
                                         required
+                                        hasError={fieldErrors.has('asegurado.razon_social')}
                                     />
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <Input
@@ -762,12 +874,14 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                             onChange={(v: string) => handleJsonChange('asegurado', 'identificacion_nit', v)}
                                             disabled={!!formData.negocio_id}
                                             required
+                                            hasError={fieldErrors.has('asegurado.identificacion_nit')}
                                         />
                                         <Input
                                             label="Ubicación"
                                             value={formData.datos_json.asegurado.ubicacion}
                                             onChange={(v: string) => handleJsonChange('asegurado', 'ubicacion', v)}
                                             required
+                                            hasError={fieldErrors.has('asegurado.ubicacion')}
                                         />
                                     </div>
                                 </div>
@@ -782,12 +896,14 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         onChange={(v: string) => handleJsonChange('reasegurado', 'nombre', v)}
                                         icon={Icons.Building}
                                         required
+                                        hasError={fieldErrors.has('reasegurado.nombre')}
                                     />
                                     <Input
                                         label="Dirección"
                                         value={formData.datos_json.reasegurado.direccion}
                                         onChange={(v: string) => handleJsonChange('reasegurado', 'direccion', v)}
                                         required
+                                        hasError={fieldErrors.has('reasegurado.direccion')}
                                     />
                                 </div>
                             </div>
@@ -806,6 +922,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                             onChange={(v: string) => handleJsonChange('retroactividad', 'anios', v)}
                                             placeholder="Ej. 2 años"
                                             required
+                                            hasError={fieldErrors.has('retroactividad.anios')}
                                         />
                                         <Input
                                             type="date"
@@ -814,6 +931,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                             onChange={(v: string) => handleJsonChange('retroactividad', 'fecha_inicio', v)}
                                             icon={Icons.Calendar}
                                             required
+                                            hasError={fieldErrors.has('retroactividad.fecha_inicio')}
                                         />
                                         <Input
                                             type="date"
@@ -822,10 +940,34 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                             onChange={(v: string) => handleJsonChange('retroactividad', 'fecha_fin', v)}
                                             icon={Icons.Calendar}
                                             required
+                                            hasError={fieldErrors.has('retroactividad.fecha_fin')}
                                         />
                                     </div>
                                 </div>
                             )}
+
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
+                                <SectionTitle title="Límite de Indemnización" subtitle="Valores asegurados." />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <Input
+                                        type="number"
+                                        label={formData.tipo_slip === 'HIBRIDO' ? "Límite Indemnización Total ($)" : "Límite Indemnización ($)"}
+                                        value={formData.datos_json.limite_indemnizacion_valor}
+                                        onChange={(v: string) => {
+                                            const val = Number(v);
+                                            handleJsonChange('limite_indemnizacion_valor', null, val);
+                                            // Auto-calculate sublimit
+                                            const pct = formData.datos_json.gastos_defensa?.porcentaje_limite || 0;
+                                            const sub = val * (pct / 100);
+                                            handleJsonChange('gastos_defensa', 'sublimite_evento_cop', sub);
+                                        }}
+                                        icon={Icons.Money}
+                                        required
+                                        isCurrency
+                                        hasError={fieldErrors.has('limite_indemnizacion_valor')}
+                                    />
+                                </div>
+                            </div>
 
                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
                                 <SectionTitle title="Gastos de Defensa" />
@@ -834,20 +976,30 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         type="number"
                                         label="% Límite"
                                         value={formData.datos_json.gastos_defensa?.porcentaje_limite}
-                                        onChange={(v: string) => handleJsonChange('gastos_defensa', 'porcentaje_limite', Number(v))}
+                                        onChange={(v: string) => {
+                                            const pct = Number(v);
+                                            handleJsonChange('gastos_defensa', 'porcentaje_limite', pct);
+                                            // Auto-calculate sublimit
+                                            const limit = formData.datos_json.limite_indemnizacion_valor || 0;
+                                            const sub = limit * (pct / 100);
+                                            handleJsonChange('gastos_defensa', 'sublimite_evento_cop', sub);
+                                        }}
                                         required
                                         min={0}
                                         max={100}
                                         step={0.01}
+                                        hasError={fieldErrors.has('gastos_defensa.porcentaje_limite')}
                                     />
                                     <Input
                                         type="number"
                                         label="Sublímite (COP)"
                                         value={formData.datos_json.gastos_defensa?.sublimite_evento_cop}
-                                        onChange={(v: string) => handleJsonChange('gastos_defensa', 'sublimite_evento_cop', Number(v))}
+                                        onChange={(v: string) => {}} // Read-only
                                         icon={Icons.Money}
                                         required
                                         isCurrency
+                                        disabled={true}
+                                        hasError={fieldErrors.has('gastos_defensa.sublimite_evento_cop')}
                                     />
                                 </div>
                             </div>
@@ -864,6 +1016,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         min={0}
                                         max={100}
                                         step={0.01}
+                                        hasError={fieldErrors.has('deducibles.porcentaje_valor_perdida')}
                                     />
                                     <Input
                                         type="number"
@@ -873,6 +1026,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         icon={Icons.Money}
                                         required
                                         isCurrency
+                                        hasError={fieldErrors.has('deducibles.minimo_cop')}
                                     />
                                 </div>
                                 <div className="mt-6">
@@ -885,6 +1039,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         max={100}
                                         step={0.01}
                                         required
+                                        hasError={fieldErrors.has('deducibles.gastos_defensa_porcentaje')}
                                     />
                                 </div>
                             </div>
@@ -896,37 +1051,29 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
                                 <SectionTitle title="Valores Económicos" subtitle="Límites y primas del contrato." />
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {formData.tipo_slip === 'HIBRIDO' ? (
+                                    {formData.tipo_slip === 'HIBRIDO' && (
                                         <>
                                             <Input
                                                 type="number"
-                                                label="Límite Indemnización ($) (Ocurrencia)"
-                                                value={formData.datos_json.limite_indemnizacion_valor}
-                                                onChange={(v: string) => handleJsonChange('limite_indemnizacion_valor', null, Number(v))}
+                                                label="Límite Único y Combinado (Ocurrencia)"
+                                                value={formData.datos_json.limite_indemnizacion_ocurrencia_valor || 0}
+                                                onChange={(v: string) => handleJsonChange('limite_indemnizacion_ocurrencia_valor', null, Number(v))}
                                                 icon={Icons.Money}
                                                 required
                                                 isCurrency
+                                                hasError={fieldErrors.has('limite_indemnizacion_ocurrencia_valor')}
                                             />
                                             <Input
                                                 type="number"
-                                                label="Límite Indemnización ($) (Claims Made)"
+                                                label="Límite Único y Combinado (Claims Made)"
                                                 value={formData.datos_json.limite_indemnizacion_claims_made_valor || 0}
                                                 onChange={(v: string) => handleJsonChange('limite_indemnizacion_claims_made_valor', null, Number(v))}
                                                 icon={Icons.Money}
                                                 required
                                                 isCurrency
+                                                hasError={fieldErrors.has('limite_indemnizacion_claims_made_valor')}
                                             />
                                         </>
-                                    ) : (
-                                        <Input
-                                            type="number"
-                                            label="Límite Indemnización ($)"
-                                            value={formData.datos_json.limite_indemnizacion_valor}
-                                            onChange={(v: string) => handleJsonChange('limite_indemnizacion_valor', null, Number(v))}
-                                            icon={Icons.Money}
-                                            required
-                                            isCurrency
-                                        />
                                     )}
                                     <Input
                                         type="number"
@@ -936,8 +1083,40 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         icon={Icons.Money}
                                         required
                                         isCurrency
+                                        hasError={fieldErrors.has('prima_anual_valor')}
                                     />
                                 </div>
+                                {formData.tipo_slip === 'HIBRIDO' && (
+                                    <div className={`mt-4 p-4 rounded-lg border ${
+                                        (formData.datos_json.limite_indemnizacion_ocurrencia_valor || 0) + 
+                                        (formData.datos_json.limite_indemnizacion_claims_made_valor || 0) > 
+                                        formData.datos_json.limite_indemnizacion_valor 
+                                        ? 'bg-red-50 border-red-200 text-red-700' 
+                                        : 'bg-blue-50 border-blue-200 text-blue-700'
+                                    }`}>
+                                        <div className="flex items-center gap-2">
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            <span className="font-medium">Control de Límites:</span>
+                                        </div>
+                                        <p className="mt-1 text-sm">
+                                            Suma actual: {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(
+                                                (formData.datos_json.limite_indemnizacion_ocurrencia_valor || 0) + 
+                                                (formData.datos_json.limite_indemnizacion_claims_made_valor || 0)
+                                            )}
+                                            {' / '}
+                                            Límite Total: {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(formData.datos_json.limite_indemnizacion_valor)}
+                                        </p>
+                                        {((formData.datos_json.limite_indemnizacion_ocurrencia_valor || 0) + 
+                                          (formData.datos_json.limite_indemnizacion_claims_made_valor || 0)) > 
+                                          formData.datos_json.limite_indemnizacion_valor && (
+                                            <p className="mt-1 text-sm font-bold">
+                                                ⚠️ La suma de los límites excede el límite total permitido.
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
@@ -952,6 +1131,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         min={0}
                                         max={100}
                                         step={0.01}
+                                        hasError={fieldErrors.has('descuentos.porcentaje_total')}
                                     />
                                     <Input
                                         type="number"
@@ -962,6 +1142,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         min={0}
                                         max={100}
                                         step={0.01}
+                                        hasError={fieldErrors.has('descuentos.porcentaje_comision_cedente')}
                                     />
                                     <Input
                                         type="number"
@@ -972,6 +1153,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         min={0}
                                         max={100}
                                         step={0.01}
+                                        hasError={fieldErrors.has('descuentos.porcentaje_intermediario')}
                                     />
                                 </div>
                             </div>
@@ -989,6 +1171,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                             min={0}
                                             max={100}
                                             step={0.01}
+                                            hasError={fieldErrors.has('retencion_cedente.porcentaje')}
                                         />
                                     </div>
                                 </div>
@@ -1004,6 +1187,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                             min={0}
                                             max={100}
                                             step={0.01}
+                                            hasError={fieldErrors.has('respaldo_reaseguro.porcentaje')}
                                         />
                                     </div>
                                 </div>
@@ -1038,6 +1222,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                     value={formData.datos_json.impuestos_nombre_reasegurador || ''}
                                     onChange={(v: string) => handleJsonChange('impuestos_nombre_reasegurador', null, v)}
                                     required
+                                    hasError={fieldErrors.has('impuestos_nombre_reasegurador')}
                                 />
                             </div>
 
@@ -1049,6 +1234,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                     value={formData.datos_json.garantia_pago_primas_dias}
                                     onChange={(v: string) => handleJsonChange('garantia_pago_primas_dias', null, parseInt(v))}
                                     required
+                                    hasError={fieldErrors.has('garantia_pago_primas_dias')}
                                 />
                             </div>
 
@@ -1070,6 +1256,8 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                     )}
                 </div>
             </div>
+            
+            <Toast messages={toastErrors} onClose={() => setToastErrors([])} />
 
             {/* Footer */}
             <div className="bg-white px-8 py-5 border-t border-zinc-100 flex justify-center">
@@ -1085,7 +1273,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                     ) : (
                         <button
                             type="button"
-                            onClick={onCancel}
+                            onClick={handleCancel}
                             className="text-zinc-500 hover:text-zinc-700 px-6 py-2.5 rounded-xl hover:bg-zinc-50 transition-colors"
                         >
                             Cancelar

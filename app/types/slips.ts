@@ -57,6 +57,7 @@ export interface SlipDataJson {
     };
     limite_indemnizacion_valor: number;
     limite_indemnizacion_claims_made_valor?: number;
+    limite_indemnizacion_ocurrencia_valor?: number;
     limite_indemnizacion?: number; // Added for backend compatibility
     prima_anual_valor: number;
     deducibles: {
