@@ -33,7 +33,7 @@ const initialSlipData: CreateSlipData = {
         limite_indemnizacion_ocurrencia_valor: 0,
         prima_anual_valor: 0,
         deducibles: { porcentaje_valor_perdida: 0, minimo_cop: 0, gastos_defensa_porcentaje: 0 },
-        descuentos: { porcentaje_total: 0, porcentaje_comision_cedente: 0, porcentaje_intermediario: 0 },
+        descuentos: { porcentaje_total: 0, porcentaje_comision_cedente: 0, porcentaje_intermediario: 0, comision_fronting: false },
         retencion_cedente: { porcentaje: 0, base: 100 },
         respaldo_reaseguro: { porcentaje: 0, base: 100 },
         reserva_primas: { porcentaje: 0, dias: 0 },
@@ -453,6 +453,13 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
 
     useEffect(() => {
         if (initialData) {
+            // Lógica para inferir el estado de fronting si no está explícitamente guardado
+            // Si comision_fronting no existe, pero el porcentaje es 0, asumimos que es fronting
+            const currentDescuentos = initialData.datos_json.descuentos || { porcentaje_total: 0, porcentaje_comision_cedente: 0, porcentaje_intermediario: 0 };
+            const isFronting = currentDescuentos.comision_fronting !== undefined 
+                ? currentDescuentos.comision_fronting 
+                : (currentDescuentos.porcentaje_comision_cedente === 0);
+
             setFormData({
                 tipo_slip: initialData.tipo_slip,
                 nombre_asegurado: initialData.nombre_asegurado,
@@ -460,7 +467,13 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                 vigencia_fin: initialData.vigencia_fin,
                 estado: initialData.estado,
                 negocio_id: initialData.negocio_id,
-                datos_json: initialData.datos_json
+                datos_json: {
+                    ...initialData.datos_json,
+                    descuentos: {
+                        ...currentDescuentos,
+                        comision_fronting: isFronting
+                    }
+                }
             });
         }
     }, [initialData]);
@@ -607,7 +620,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
         const isNonEmpty = (v: unknown) => typeof v === 'string' && v.trim().length > 0;
         const isDate = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
         const isPositive = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v > 0;
-        const isPercent = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= 100;
+        const isPercent = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= 100 && Number.isInteger(v);
 
         if (currentStep === 1) {
             if (!isNonEmpty(formData.tipo_slip)) { errors.push('Tipo de Slip es requerido'); failedFields.push('tipo_slip'); }
@@ -638,12 +651,12 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
 
             if (!isPositive(formData.datos_json.limite_indemnizacion_valor)) { errors.push('Límite Indemnización es requerido'); failedFields.push('limite_indemnizacion_valor'); }
 
-            if (!isPercent(formData.datos_json.gastos_defensa?.porcentaje_limite)) { errors.push('Gastos de Defensa (% Límite) debe ser entre 1 y 100'); failedFields.push('gastos_defensa.porcentaje_limite'); }
+            if (!isPercent(formData.datos_json.gastos_defensa?.porcentaje_limite)) { errors.push('Gastos de Defensa (% Límite) debe ser un entero entre 1 y 100'); failedFields.push('gastos_defensa.porcentaje_limite'); }
             if (!isPositive(formData.datos_json.gastos_defensa?.sublimite_evento_cop)) { errors.push('Gastos de Defensa (Sublímite COP) es requerido'); failedFields.push('gastos_defensa.sublimite_evento_cop'); }
 
-            if (!isPercent(formData.datos_json.deducibles.porcentaje_valor_perdida)) { errors.push('Deducibles (% Pérdida) debe ser entre 1 y 100'); failedFields.push('deducibles.porcentaje_valor_perdida'); }
+            if (!isPercent(formData.datos_json.deducibles.porcentaje_valor_perdida)) { errors.push('Deducibles (% Pérdida) debe ser un entero entre 1 y 100'); failedFields.push('deducibles.porcentaje_valor_perdida'); }
             if (!isPositive(formData.datos_json.deducibles.minimo_cop)) { errors.push('Deducibles (Mínimo COP) es requerido'); failedFields.push('deducibles.minimo_cop'); }
-            if (!isPercent(formData.datos_json.deducibles.gastos_defensa_porcentaje)) { errors.push('Deducibles (Gastos Defensa %) debe ser entre 1 y 100'); failedFields.push('deducibles.gastos_defensa_porcentaje'); }
+            if (!isPercent(formData.datos_json.deducibles.gastos_defensa_porcentaje)) { errors.push('Deducibles (Gastos Defensa %) debe ser un entero entre 1 y 100'); failedFields.push('deducibles.gastos_defensa_porcentaje'); }
         }
 
         if (currentStep === 4) {
@@ -664,12 +677,25 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
             
             if (!isPositive(formData.datos_json.prima_anual_valor)) { errors.push('Prima Anual es requerida'); failedFields.push('prima_anual_valor'); }
 
-            if (!isPercent(formData.datos_json.descuentos?.porcentaje_total)) { errors.push('Descuentos (% Total) debe ser entre 1 y 100'); failedFields.push('descuentos.porcentaje_total'); }
-            if (!isPercent(formData.datos_json.descuentos?.porcentaje_comision_cedente)) { errors.push('Descuentos (% Comisión Cedente) debe ser entre 1 y 100'); failedFields.push('descuentos.porcentaje_comision_cedente'); }
-            if (!isPercent(formData.datos_json.descuentos?.porcentaje_intermediario)) { errors.push('Descuentos (% Intermediario) debe ser entre 1 y 100'); failedFields.push('descuentos.porcentaje_intermediario'); }
+            if (!isPercent(formData.datos_json.descuentos?.porcentaje_total)) { errors.push('Descuentos (% Total) debe ser un entero entre 1 y 100'); failedFields.push('descuentos.porcentaje_total'); }
+            
+            // Validación especial para Comisión Cedente (Fronting)
+            if (formData.datos_json.descuentos?.comision_fronting) {
+                if (formData.datos_json.descuentos?.porcentaje_comision_cedente !== 0) {
+                    errors.push('Si Comisión Fronting está activa, la Comisión Cedente debe ser 0%');
+                    failedFields.push('descuentos.porcentaje_comision_cedente');
+                }
+            } else {
+                if (!isPercent(formData.datos_json.descuentos?.porcentaje_comision_cedente)) {
+                    errors.push('Descuentos (% Comisión Cedente) debe ser un entero entre 1 y 100');
+                    failedFields.push('descuentos.porcentaje_comision_cedente');
+                }
+            }
 
-            if (!isPercent(formData.datos_json.retencion_cedente?.porcentaje)) { errors.push('Retención Cedente (Porcentaje) debe ser entre 1 y 100'); failedFields.push('retencion_cedente.porcentaje'); }
-            if (!isPercent(formData.datos_json.respaldo_reaseguro?.porcentaje)) { errors.push('Respaldo Reaseguro (Porcentaje) debe ser entre 1 y 100'); failedFields.push('respaldo_reaseguro.porcentaje'); }
+            if (!isPercent(formData.datos_json.descuentos?.porcentaje_intermediario)) { errors.push('Descuentos (% Intermediario) debe ser un entero entre 1 y 100'); failedFields.push('descuentos.porcentaje_intermediario'); }
+
+            if (!isPercent(formData.datos_json.retencion_cedente?.porcentaje)) { errors.push('Retención Cedente (Porcentaje) debe ser un entero entre 1 y 100'); failedFields.push('retencion_cedente.porcentaje'); }
+            if (!isPercent(formData.datos_json.respaldo_reaseguro?.porcentaje)) { errors.push('Respaldo Reaseguro (Porcentaje) debe ser un entero entre 1 y 100'); failedFields.push('respaldo_reaseguro.porcentaje'); }
 
             if (!isNonEmpty(formData.datos_json.impuestos_nombre_reasegurador)) { errors.push('Impuestos (Nombre Reasegurador) es requerido'); failedFields.push('impuestos_nombre_reasegurador'); }
             if (!isPositive(formData.datos_json.garantia_pago_primas_dias)) { errors.push('Garantía Pago Primas (Días) es requerido'); failedFields.push('garantia_pago_primas_dias'); }
@@ -958,7 +984,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                             handleJsonChange('limite_indemnizacion_valor', null, val);
                                             // Auto-calculate sublimit
                                             const pct = formData.datos_json.gastos_defensa?.porcentaje_limite || 0;
-                                            const sub = val * (pct / 100);
+                                            const sub = Math.round(val * (pct / 100));
                                             handleJsonChange('gastos_defensa', 'sublimite_evento_cop', sub);
                                         }}
                                         icon={Icons.Money}
@@ -981,13 +1007,13 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                             handleJsonChange('gastos_defensa', 'porcentaje_limite', pct);
                                             // Auto-calculate sublimit
                                             const limit = formData.datos_json.limite_indemnizacion_valor || 0;
-                                            const sub = limit * (pct / 100);
+                                            const sub = Math.round(limit * (pct / 100));
                                             handleJsonChange('gastos_defensa', 'sublimite_evento_cop', sub);
                                         }}
                                         required
                                         min={0}
                                         max={100}
-                                        step={0.01}
+                                        step={1}
                                         hasError={fieldErrors.has('gastos_defensa.porcentaje_limite')}
                                     />
                                     <Input
@@ -1015,7 +1041,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         required
                                         min={0}
                                         max={100}
-                                        step={0.01}
+                                        step={1}
                                         hasError={fieldErrors.has('deducibles.porcentaje_valor_perdida')}
                                     />
                                     <Input
@@ -1037,7 +1063,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         onChange={(v: string) => handleJsonChange('deducibles', 'gastos_defensa_porcentaje', Number(v))}
                                         min={0}
                                         max={100}
-                                        step={0.01}
+                                        step={1}
                                         required
                                         hasError={fieldErrors.has('deducibles.gastos_defensa_porcentaje')}
                                     />
@@ -1121,6 +1147,29 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
 
                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
                                 <SectionTitle title="Descuentos de Reaseguro" />
+                                <div className="mb-6 flex items-center gap-3 bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only peer"
+                                            checked={formData.datos_json.descuentos?.comision_fronting || false}
+                                            onChange={(e) => {
+                                                const isChecked = e.target.checked;
+                                                handleJsonChange('descuentos', 'comision_fronting', isChecked);
+                                                if (isChecked) {
+                                                    handleJsonChange('descuentos', 'porcentaje_comision_cedente', 0);
+                                                    handleJsonChange('respaldo_reaseguro', 'porcentaje', 100);
+                                                }
+                                            }}
+                                        />
+                                        <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                    </label>
+                                    <div>
+                                        <span className="text-sm font-medium text-zinc-900">Comisión Fronting</span>
+                                        <p className="text-xs text-zinc-500">Si se activa, la comisión cedente será 0%.</p>
+                                    </div>
+                                </div>
+
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <Input
                                         type="number"
@@ -1130,20 +1179,27 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         required
                                         min={0}
                                         max={100}
-                                        step={0.01}
+                                        step={1}
                                         hasError={fieldErrors.has('descuentos.porcentaje_total')}
                                     />
-                                    <Input
-                                        type="number"
-                                        label="% Comisión Cedente"
-                                        value={formData.datos_json.descuentos?.porcentaje_comision_cedente}
-                                        onChange={(v: string) => handleJsonChange('descuentos', 'porcentaje_comision_cedente', Number(v))}
-                                        required
-                                        min={0}
-                                        max={100}
-                                        step={0.01}
-                                        hasError={fieldErrors.has('descuentos.porcentaje_comision_cedente')}
-                                    />
+                                    <div className={formData.datos_json.descuentos?.comision_fronting ? 'opacity-50 pointer-events-none grayscale' : ''}>
+                                        <Input
+                                            type="number"
+                                            label="% Comisión Cedente"
+                                            value={formData.datos_json.descuentos?.porcentaje_comision_cedente}
+                                            onChange={(v: string) => {
+                                                const val = Number(v);
+                                                handleJsonChange('descuentos', 'porcentaje_comision_cedente', val);
+                                                handleJsonChange('respaldo_reaseguro', 'porcentaje', 100 - val);
+                                            }}
+                                            required
+                                            min={0}
+                                            max={100}
+                                            step={1}
+                                            disabled={formData.datos_json.descuentos?.comision_fronting}
+                                            hasError={fieldErrors.has('descuentos.porcentaje_comision_cedente')}
+                                        />
+                                    </div>
                                     <Input
                                         type="number"
                                         label="% Intermediario"
@@ -1152,7 +1208,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         required
                                         min={0}
                                         max={100}
-                                        step={0.01}
+                                        step={1}
                                         hasError={fieldErrors.has('descuentos.porcentaje_intermediario')}
                                     />
                                 </div>
@@ -1170,7 +1226,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                             required
                                             min={0}
                                             max={100}
-                                            step={0.01}
+                                            step={1}
                                             hasError={fieldErrors.has('retencion_cedente.porcentaje')}
                                         />
                                     </div>
@@ -1186,7 +1242,8 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                             required
                                             min={0}
                                             max={100}
-                                            step={0.01}
+                                            step={1}
+                                            disabled={true}
                                             hasError={fieldErrors.has('respaldo_reaseguro.porcentaje')}
                                         />
                                     </div>
@@ -1203,7 +1260,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         onChange={(v: string) => handleJsonChange('reserva_primas', 'porcentaje', parseFloat(v))}
                                         min={0}
                                         max={100}
-                                        step={0.01}
+                                        step={1}
                                     />
                                     <Input
                                         type="number"

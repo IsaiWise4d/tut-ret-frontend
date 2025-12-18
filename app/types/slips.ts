@@ -69,6 +69,7 @@ export interface SlipDataJson {
         porcentaje_total: number;
         porcentaje_comision_cedente: number;
         porcentaje_intermediario: number;
+        comision_fronting?: boolean;
     };
     impuestos_nombre_reasegurador?: string;
     retencion_cedente?: {
