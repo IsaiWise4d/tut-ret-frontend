@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { CreateSlipData, Slip } from '@/app/types/slips';
 import { Negocio } from '@/app/types/negocios';
 import * as api from '@/app/lib/api';
+import { AuthContext } from '@/app/context/AuthContext';
 
 interface SlipFormProps {
     initialData?: Slip;
@@ -431,6 +432,8 @@ const SectionTitle = ({ title, subtitle }: { title: string, subtitle?: string })
 );
 
 function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
+    const auth = useContext(AuthContext);
+    const user = auth?.user;
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState<CreateSlipData>(initialSlipData);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -546,6 +549,24 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
         }
     };
 
+    const handleDelete = async () => {
+        if (!initialData?.id) return;
+        
+        if (!window.confirm('¿Estás seguro de que deseas eliminar este Slip? Esta acción no se puede deshacer.')) {
+            return;
+        }
+
+        try {
+            setIsSubmitting(true);
+            await api.deleteSlip(initialData.id);
+            onSuccess(); // Refresh list
+        } catch (err) {
+            const message = err instanceof Error ? err.message : "Error al eliminar el slip";
+            setError(message);
+            setIsSubmitting(false);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
@@ -654,6 +675,13 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                 if (!isNonEmpty(formData.datos_json.retroactividad?.anios)) { errors.push('Retroactividad (Años) es requerido'); failedFields.push('retroactividad.anios'); }
                 if (!isDate(formData.datos_json.retroactividad?.fecha_inicio)) { errors.push('Retroactividad (Fecha Inicio) es requerida'); failedFields.push('retroactividad.fecha_inicio'); }
                 if (!isDate(formData.datos_json.retroactividad?.fecha_fin)) { errors.push('Retroactividad (Fecha Fin) es requerida'); failedFields.push('retroactividad.fecha_fin'); }
+
+                if (isDate(formData.datos_json.retroactividad?.fecha_inicio) && isDate(formData.datos_json.retroactividad?.fecha_fin)) {
+                    if (formData.datos_json.retroactividad!.fecha_fin! <= formData.datos_json.retroactividad!.fecha_inicio!) {
+                        errors.push('Retroactividad: La Fecha Fin debe ser posterior a la Fecha Inicio');
+                        failedFields.push('retroactividad.fecha_fin');
+                    }
+                }
             }
 
             if (!isPositive(formData.datos_json.limite_indemnizacion_valor)) { errors.push('Límite Indemnización es requerido'); failedFields.push('limite_indemnizacion_valor'); }
@@ -1326,6 +1354,17 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
             {/* Footer */}
             <div className="bg-white px-8 py-5 border-t border-zinc-100 flex justify-center">
                 <div className="flex w-full max-w-3xl items-center justify-center gap-8">
+                    {initialData && user?.role === 'SUPER_ADMIN' && (
+                        <button
+                            type="button"
+                            onClick={handleDelete}
+                            disabled={isSubmitting}
+                            className="text-red-500 hover:text-red-700 font-medium px-6 py-2.5 rounded-xl hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Eliminar
+                        </button>
+                    )}
+
                     {step > 1 ? (
                         <button
                             type="button"

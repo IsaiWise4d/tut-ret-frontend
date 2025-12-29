@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/hooks/useAuth';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ROLES } from '@/app/constants/roles';
 
 export default function Navbar() {
@@ -12,7 +12,14 @@ export default function Navbar() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showAdminMenu, setShowAdminMenu] = useState(false);
 
+  // Close menus when user changes (login/logout)
+  useEffect(() => {
+    setShowUserMenu(false);
+    setShowAdminMenu(false);
+  }, [user, isAuthenticated]);
+
   const handleLogout = () => {
+    setShowUserMenu(false);
     logout();
     router.push('/');
   };

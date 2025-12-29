@@ -104,7 +104,11 @@ export default function NegocioHistoryModal({ isOpen, onClose, history, isLoadin
                                                 }`}>
                                                     {entry.tipo_cambio}
                                                 </span>
-                                                <span className="text-xs text-gray-400">ID: {entry.id}</span>
+                                                {entry.created_by && (
+                                                    <span className="text-xs text-gray-500 font-medium border-l border-gray-300 pl-2 ml-1">
+                                                        Por: {entry.created_by.full_name || entry.created_by.username}
+                                                    </span>
+                                                )}
                                             </div>
                                             <time className="text-xs font-medium text-gray-500">
                                                 {new Date(entry.created_at).toLocaleString()}

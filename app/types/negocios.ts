@@ -45,6 +45,8 @@ export interface UpdateNegocioData {
   broker_id?: number;
 }
 
+import { User } from "./auth";
+
 export interface NegocioHistory {
   id: number;
   negocio_id: number;
@@ -52,4 +54,6 @@ export interface NegocioHistory {
   estado_nuevo: any;
   tipo_cambio: string;
   created_at: string;
+  created_by_id?: number;
+  created_by?: User;
 }

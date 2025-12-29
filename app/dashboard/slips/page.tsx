@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
+import { useAuth } from '@/app/hooks/useAuth';
 import { Slip, SlipHistory } from '@/app/types/slips';
 import { getSlips, deleteSlip, generateSlipPdf, getSlipHistory, searchSlips } from '@/app/lib/api';
 import SlipForm from '@/app/components/forms/SlipForm';
@@ -16,6 +17,7 @@ export default function SlipsPage() {
 }
 
 function SlipsContent() {
+    const { user } = useAuth();
     const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
     const [slips, setSlips] = useState<Slip[]>([]);
     const [loading, setLoading] = useState(true);
@@ -269,6 +271,14 @@ function SlipsContent() {
                                                     >
                                                         Editar
                                                     </button>
+                                                    {user?.role === 'SUPER_ADMIN' && (
+                                                        <button
+                                                            onClick={() => handleDelete(slip.id)}
+                                                            className="text-red-600 hover:text-red-900 font-semibold"
+                                                        >
+                                                            Eliminar
+                                                        </button>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))}
