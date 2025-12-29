@@ -628,6 +628,13 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
             if (!isDate(formData.vigencia_inicio)) { errors.push('Vigencia Inicio es requerida'); failedFields.push('vigencia_inicio'); }
             if (!isDate(formData.vigencia_fin)) { errors.push('Vigencia Fin es requerida'); failedFields.push('vigencia_fin'); }
 
+            if (isDate(formData.vigencia_inicio) && isDate(formData.vigencia_fin)) {
+                if (formData.vigencia_fin <= formData.vigencia_inicio) {
+                    errors.push('La Vigencia Fin debe ser posterior a la Vigencia Inicio');
+                    failedFields.push('vigencia_fin');
+                }
+            }
+
             if (formData.tipo_slip === 'HIBRIDO') {
                 if (!isNonEmpty(formData.datos_json.base_cobertura_hibrido?.anios)) { errors.push('Años (Base Cobertura Híbrido) es requerido'); failedFields.push('base_cobertura_hibrido.anios'); }
                 if (!isDate(formData.datos_json.base_cobertura_hibrido?.fecha)) { errors.push('Fecha (Base Cobertura Híbrido) es requerida'); failedFields.push('base_cobertura_hibrido.fecha'); }
