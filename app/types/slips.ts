@@ -49,6 +49,10 @@ export interface SlipDataJson {
         fecha_inicio?: string;
         fecha_fin?: string;
     };
+    base_cobertura_hibrido?: {
+        anios: string;
+        fecha: string;
+    };
     gastos_defensa?: {
         porcentaje_limite: number;
         sublimite_evento_cop: number;
