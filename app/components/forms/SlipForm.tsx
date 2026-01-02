@@ -24,11 +24,12 @@ const initialSlipData: CreateSlipData = {
         reasegurado: { nombre: '', direccion: '' },
         asegurado: { razon_social: '', identificacion_nit: '', ubicacion: '' },
         fecha_inicio: '',
+        hora_fecha_inicio: '00:00',
         fecha_fin: '',
+        hora_fecha_fin: '24:00',
         tipo_cobertura: 'CLAIMS_MADE',
-        base_cobertura_hibrido: { anios: '', fecha: '' },
         retroactividad: { anios: '', fecha_inicio: '', fecha_fin: '' },
-        gastos_defensa: { porcentaje_limite: 0, sublimite_evento_cop: 0 },
+        gastos_defensa: { porcentaje_limite: 0, sublimite_evento_cop: 0, gasto_defensa_por_evento: 0 },
         limite_indemnizacion_valor: 0,
         limite_indemnizacion_claims_made_valor: 0,
         limite_indemnizacion_ocurrencia_valor: 0,
@@ -37,8 +38,10 @@ const initialSlipData: CreateSlipData = {
         descuentos: { porcentaje_total: 0, porcentaje_comision_cedente: 0, porcentaje_intermediario: 0, comision_fronting: false },
         retencion_cedente: { porcentaje: 0, base: 100 },
         respaldo_reaseguro: { porcentaje: 0, base: 100 },
-        reserva_primas: { porcentaje: 0, dias: 0 },
-        garantia_pago_primas_dias: 60
+        reserva_primas: { porcentaje: 20, dias: 30 },
+        garantia_pago_primas_dias: 60,
+        numero_cuotas: 1,
+        valor_cuota: 0
     }
 };
 
@@ -261,10 +264,12 @@ const Toast = ({ messages, onClose }: { messages: string[], onClose: () => void 
 };
 
 // Reusable Components (Moved outside SlipForm)
-const Input = ({ label, value, onChange, type = "text", required = false, icon: Icon, placeholder, disabled = false, min, max, step, isCurrency = false, hasError = false }: any) => {
+const Input = ({ label, value, onChange, type = "text", required = false, icon: Icon, placeholder, disabled = false, min, max, step, isCurrency = false, hasError = false, defaultValue }: any) => {
     const isNumber = type === 'number' || isCurrency;
     const hasMin = typeof min === 'number' && Number.isFinite(min);
     const hasMax = typeof max === 'number' && Number.isFinite(max);
+
+    const isModified = defaultValue !== undefined && value !== defaultValue;
 
     const [isFocused, setIsFocused] = useState(false);
     
@@ -318,17 +323,20 @@ const Input = ({ label, value, onChange, type = "text", required = false, icon: 
             return;
         }
 
+        // Normalizar coma a punto para decimales
+        const normalizedValue = rawValue.replace(/,/g, '.');
+
         // Acepta solo números con un punto decimal opcional.
-        if (!/^\d*(\.\d*)?$/.test(rawValue)) return;
+        if (!/^\d*(\.\d*)?$/.test(normalizedValue)) return;
 
-        setInternalValue(rawValue);
+        setInternalValue(normalizedValue);
 
-        if (rawValue === '' || rawValue === '.' || rawValue.endsWith('.')) {
+        if (normalizedValue === '' || normalizedValue === '.' || normalizedValue.endsWith('.')) {
             // Estado intermedio de escritura (p.ej. "1.")
             return;
         }
 
-        const parsed = Number(rawValue);
+        const parsed = Number(normalizedValue);
         if (Number.isNaN(parsed)) return;
 
         const clamped = clampNumber(parsed);
@@ -339,7 +347,7 @@ const Input = ({ label, value, onChange, type = "text", required = false, icon: 
             return;
         }
 
-        onChange(rawValue);
+        onChange(normalizedValue);
     };
 
     const handleBlur = () => {
@@ -386,9 +394,19 @@ const Input = ({ label, value, onChange, type = "text", required = false, icon: 
 
     return (
         <div className="group">
-            <label className={`block text-sm font-medium mb-1.5 ${hasError ? 'text-red-600' : 'text-zinc-700'}`}>
-                {label} {required && <span className="text-red-500">*</span>}
-            </label>
+            <div className="flex justify-between items-center mb-1.5">
+                <label className={`block text-sm font-medium ${hasError ? 'text-red-600' : 'text-zinc-700'}`}>
+                    {label} {required && <span className="text-red-500">*</span>}
+                </label>
+                {isModified && (
+                    <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100 flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        Modificado
+                    </span>
+                )}
+            </div>
             <div className="relative">
                 {Icon && (
                     <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none ${hasError ? 'text-red-400' : ''}`}>
@@ -442,6 +460,32 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
     const [fieldErrors, setFieldErrors] = useState<Set<string>>(new Set());
     const [isDirty, setIsDirty] = useState(false);
 
+    // Auto-calculate valor_cuota
+    useEffect(() => {
+        const prima = formData.datos_json.prima_anual_valor || 0;
+        const descuentoTotal = formData.datos_json.descuentos?.porcentaje_total || 0;
+        const cuotas = formData.datos_json.numero_cuotas || 1;
+
+        if (cuotas > 0) {
+            const netPremium = prima * (1 - (descuentoTotal / 100));
+            const valorCuota = Math.round(netPremium / cuotas);
+            
+            if (valorCuota !== formData.datos_json.valor_cuota) {
+                setFormData(prev => ({
+                    ...prev,
+                    datos_json: {
+                        ...prev.datos_json,
+                        valor_cuota: valorCuota
+                    }
+                }));
+            }
+        }
+    }, [
+        formData.datos_json.prima_anual_valor,
+        formData.datos_json.descuentos?.porcentaje_total,
+        formData.datos_json.numero_cuotas
+    ]);
+
     useEffect(() => {
         const handleBeforeUnload = (e: BeforeUnloadEvent) => {
             if (isDirty) {
@@ -453,6 +497,20 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
         window.addEventListener('beforeunload', handleBeforeUnload);
         return () => window.removeEventListener('beforeunload', handleBeforeUnload);
     }, [isDirty]);
+
+    // Sync Ocurrencia limit with Total limit for HIBRIDO slips
+    useEffect(() => {
+        if (formData.tipo_slip === 'HIBRIDO' && 
+            formData.datos_json.limite_indemnizacion_valor !== formData.datos_json.limite_indemnizacion_ocurrencia_valor) {
+            setFormData(prev => ({
+                ...prev,
+                datos_json: {
+                    ...prev.datos_json,
+                    limite_indemnizacion_ocurrencia_valor: prev.datos_json.limite_indemnizacion_valor
+                }
+            }));
+        }
+    }, [formData.tipo_slip, formData.datos_json.limite_indemnizacion_valor, formData.datos_json.limite_indemnizacion_ocurrencia_valor]);
 
     useEffect(() => {
         if (initialData) {
@@ -610,7 +668,8 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
         // Clean up retroactividad dates if they are undefined/empty to avoid validation error
         if (finalData.datos_json.retroactividad) {
             if (!finalData.datos_json.retroactividad.fecha_inicio) delete finalData.datos_json.retroactividad.fecha_inicio;
-            if (!finalData.datos_json.retroactividad.fecha_fin) delete finalData.datos_json.retroactividad.fecha_fin;
+            // Force fecha_fin to be vigencia_inicio
+            finalData.datos_json.retroactividad.fecha_fin = formData.vigencia_inicio;
         }
 
         // Clean up base_cobertura_hibrido if tipo is not HIBRIDO
@@ -641,7 +700,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
         const isNonEmpty = (v: unknown) => typeof v === 'string' && v.trim().length > 0;
         const isDate = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
         const isPositive = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v > 0;
-        const isPercent = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= 100 && Number.isInteger(v);
+        const isPercent = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 100;
 
         if (currentStep === 1) {
             if (!isNonEmpty(formData.tipo_slip)) { errors.push('Tipo de Slip es requerido'); failedFields.push('tipo_slip'); }
@@ -654,11 +713,6 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                     errors.push('La Vigencia Fin debe ser posterior a la Vigencia Inicio');
                     failedFields.push('vigencia_fin');
                 }
-            }
-
-            if (formData.tipo_slip === 'HIBRIDO') {
-                if (!isNonEmpty(formData.datos_json.base_cobertura_hibrido?.anios)) { errors.push('Años (Base Cobertura Híbrido) es requerido'); failedFields.push('base_cobertura_hibrido.anios'); }
-                if (!isDate(formData.datos_json.base_cobertura_hibrido?.fecha)) { errors.push('Fecha (Base Cobertura Híbrido) es requerida'); failedFields.push('base_cobertura_hibrido.fecha'); }
             }
         }
 
@@ -674,24 +728,24 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
             if (formData.tipo_slip !== 'OCURRENCIA') {
                 if (!isNonEmpty(formData.datos_json.retroactividad?.anios)) { errors.push('Retroactividad (Años) es requerido'); failedFields.push('retroactividad.anios'); }
                 if (!isDate(formData.datos_json.retroactividad?.fecha_inicio)) { errors.push('Retroactividad (Fecha Inicio) es requerida'); failedFields.push('retroactividad.fecha_inicio'); }
-                if (!isDate(formData.datos_json.retroactividad?.fecha_fin)) { errors.push('Retroactividad (Fecha Fin) es requerida'); failedFields.push('retroactividad.fecha_fin'); }
-
-                if (isDate(formData.datos_json.retroactividad?.fecha_inicio) && isDate(formData.datos_json.retroactividad?.fecha_fin)) {
-                    if (formData.datos_json.retroactividad!.fecha_fin! <= formData.datos_json.retroactividad!.fecha_inicio!) {
-                        errors.push('Retroactividad: La Fecha Fin debe ser posterior a la Fecha Inicio');
-                        failedFields.push('retroactividad.fecha_fin');
+                // Fecha Fin is now auto-calculated from Vigencia Inicio, so we check if Vigencia Inicio is set (which is checked in step 1)
+                // But we can check if the calculation is valid (start < end)
+                if (isDate(formData.datos_json.retroactividad?.fecha_inicio) && isDate(formData.vigencia_inicio)) {
+                     if (formData.vigencia_inicio <= formData.datos_json.retroactividad!.fecha_inicio!) {
+                        errors.push('Retroactividad: La Fecha Inicio debe ser anterior a la Vigencia Inicio');
+                        failedFields.push('retroactividad.fecha_inicio');
                     }
                 }
             }
 
             if (!isPositive(formData.datos_json.limite_indemnizacion_valor)) { errors.push('Límite Indemnización es requerido'); failedFields.push('limite_indemnizacion_valor'); }
 
-            if (!isPercent(formData.datos_json.gastos_defensa?.porcentaje_limite)) { errors.push('Gastos de Defensa (% Límite) debe ser un entero entre 1 y 100'); failedFields.push('gastos_defensa.porcentaje_limite'); }
+            if (!isPercent(formData.datos_json.gastos_defensa?.porcentaje_limite)) { errors.push('Gastos de Defensa (% Límite) debe ser un número entre 0 y 100'); failedFields.push('gastos_defensa.porcentaje_limite'); }
             if (!isPositive(formData.datos_json.gastos_defensa?.sublimite_evento_cop)) { errors.push('Gastos de Defensa (Sublímite COP) es requerido'); failedFields.push('gastos_defensa.sublimite_evento_cop'); }
 
-            if (!isPercent(formData.datos_json.deducibles.porcentaje_valor_perdida)) { errors.push('Deducibles (% Pérdida) debe ser un entero entre 1 y 100'); failedFields.push('deducibles.porcentaje_valor_perdida'); }
+            if (!isPercent(formData.datos_json.deducibles.porcentaje_valor_perdida)) { errors.push('Deducibles (% Pérdida) debe ser un número entre 0 y 100'); failedFields.push('deducibles.porcentaje_valor_perdida'); }
             if (!isPositive(formData.datos_json.deducibles.minimo_cop)) { errors.push('Deducibles (Mínimo COP) es requerido'); failedFields.push('deducibles.minimo_cop'); }
-            if (!isPercent(formData.datos_json.deducibles.gastos_defensa_porcentaje)) { errors.push('Deducibles (Gastos Defensa %) debe ser un entero entre 1 y 100'); failedFields.push('deducibles.gastos_defensa_porcentaje'); }
+            if (!isPercent(formData.datos_json.deducibles.gastos_defensa_porcentaje)) { errors.push('Deducibles (Gastos Defensa %) debe ser un número entre 0 y 100'); failedFields.push('deducibles.gastos_defensa_porcentaje'); }
         }
 
         if (currentStep === 4) {
@@ -701,36 +755,26 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
 
                 const ocurrencia = formData.datos_json.limite_indemnizacion_ocurrencia_valor || 0;
                 const claims = formData.datos_json.limite_indemnizacion_claims_made_valor || 0;
-                const total = formData.datos_json.limite_indemnizacion_valor || 0;
                 
-                if (ocurrencia + claims > total) {
-                    errors.push('La suma de los límites (Ocurrencia + Claims Made) excede el Límite Total');
-                    failedFields.push('limite_indemnizacion_ocurrencia_valor');
+                if (claims > ocurrencia) {
+                    errors.push('El sublímite Claims Made no puede exceder el Límite de Ocurrencia');
                     failedFields.push('limite_indemnizacion_claims_made_valor');
                 }
             }
             
             if (!isPositive(formData.datos_json.prima_anual_valor)) { errors.push('Prima Anual es requerida'); failedFields.push('prima_anual_valor'); }
 
-            if (!isPercent(formData.datos_json.descuentos?.porcentaje_total)) { errors.push('Descuentos (% Total) debe ser un entero entre 1 y 100'); failedFields.push('descuentos.porcentaje_total'); }
+            if (!isPercent(formData.datos_json.descuentos?.porcentaje_total)) { errors.push('Descuentos (% Total) debe ser un número entre 0 y 100'); failedFields.push('descuentos.porcentaje_total'); }
             
-            // Validación especial para Comisión Cedente (Fronting)
-            if (formData.datos_json.descuentos?.comision_fronting) {
-                if (formData.datos_json.descuentos?.porcentaje_comision_cedente !== 0) {
-                    errors.push('Si Comisión Fronting está activa, la Comisión Cedente debe ser 0%');
-                    failedFields.push('descuentos.porcentaje_comision_cedente');
-                }
-            } else {
-                if (!isPercent(formData.datos_json.descuentos?.porcentaje_comision_cedente)) {
-                    errors.push('Descuentos (% Comisión Cedente) debe ser un entero entre 1 y 100');
-                    failedFields.push('descuentos.porcentaje_comision_cedente');
-                }
+            if (!isPercent(formData.datos_json.descuentos?.porcentaje_comision_cedente)) {
+                errors.push('Descuentos (% Comisión Cedente) debe ser un número entre 0 y 100');
+                failedFields.push('descuentos.porcentaje_comision_cedente');
             }
 
-            if (!isPercent(formData.datos_json.descuentos?.porcentaje_intermediario)) { errors.push('Descuentos (% Intermediario) debe ser un entero entre 1 y 100'); failedFields.push('descuentos.porcentaje_intermediario'); }
+            if (!isPercent(formData.datos_json.descuentos?.porcentaje_intermediario)) { errors.push('Descuentos (% Intermediario) debe ser un número entre 0 y 100'); failedFields.push('descuentos.porcentaje_intermediario'); }
 
-            if (!isPercent(formData.datos_json.retencion_cedente?.porcentaje)) { errors.push('Retención Cedente (Porcentaje) debe ser un entero entre 1 y 100'); failedFields.push('retencion_cedente.porcentaje'); }
-            if (!isPercent(formData.datos_json.respaldo_reaseguro?.porcentaje)) { errors.push('Respaldo Reaseguro (Porcentaje) debe ser un entero entre 1 y 100'); failedFields.push('respaldo_reaseguro.porcentaje'); }
+            if (!isPercent(formData.datos_json.retencion_cedente?.porcentaje)) { errors.push('Retención Cedente (Porcentaje) debe ser un número entre 0 y 100'); failedFields.push('retencion_cedente.porcentaje'); }
+            if (!isPercent(formData.datos_json.respaldo_reaseguro?.porcentaje)) { errors.push('Respaldo Reaseguro (Porcentaje) debe ser un número entre 0 y 100'); failedFields.push('respaldo_reaseguro.porcentaje'); }
 
             if (!isNonEmpty(formData.datos_json.impuestos_nombre_reasegurador)) { errors.push('Impuestos (Nombre Reasegurador) es requerido'); failedFields.push('impuestos_nombre_reasegurador'); }
             if (!isPositive(formData.datos_json.garantia_pago_primas_dias)) { errors.push('Garantía Pago Primas (Días) es requerido'); failedFields.push('garantia_pago_primas_dias'); }
@@ -851,27 +895,6 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                             <option value="HIBRIDO">Híbrido</option>
                                         </select>
                                     </div>
-                                    {formData.tipo_slip === 'HIBRIDO' && (
-                                        <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 bg-blue-50 p-4 rounded-xl border border-blue-200">
-                                            <Input
-                                                label="Años (Base Cobertura Híbrido)"
-                                                value={formData.datos_json.base_cobertura_hibrido?.anios || ''}
-                                                onChange={(v: string) => handleJsonChange('base_cobertura_hibrido', 'anios', v)}
-                                                placeholder="Ej. 5"
-                                                required
-                                                hasError={fieldErrors.has('base_cobertura_hibrido.anios')}
-                                            />
-                                            <Input
-                                                type="date"
-                                                label="Fecha (Base Cobertura Híbrido)"
-                                                value={formData.datos_json.base_cobertura_hibrido?.fecha || ''}
-                                                onChange={(v: string) => handleJsonChange('base_cobertura_hibrido', 'fecha', v)}
-                                                icon={Icons.Calendar}
-                                                required
-                                                hasError={fieldErrors.has('base_cobertura_hibrido.fecha')}
-                                            />
-                                        </div>
-                                    )}
                                     <Input
                                         label="Nombre Asegurado (Etiqueta)"
                                         value={formData.nombre_asegurado}
@@ -885,30 +908,60 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                                    <Input
-                                        type="date"
-                                        label="Vigencia Inicio"
-                                        value={formData.vigencia_inicio}
-                                        onChange={(v: string) => {
-                                            handleChange('vigencia_inicio', v);
-                                            handleJsonChange('fecha_inicio', null, v);
-                                        }}
-                                        required
-                                        icon={Icons.Calendar}
-                                        hasError={fieldErrors.has('vigencia_inicio')}
-                                    />
-                                    <Input
-                                        type="date"
-                                        label="Vigencia Fin"
-                                        value={formData.vigencia_fin}
-                                        onChange={(v: string) => {
-                                            handleChange('vigencia_fin', v);
-                                            handleJsonChange('fecha_fin', null, v);
-                                        }}
-                                        required
-                                        icon={Icons.Calendar}
-                                        hasError={fieldErrors.has('vigencia_fin')}
-                                    />
+                                    <div className="flex gap-3">
+                                        <div className="flex-1">
+                                            <Input
+                                                type="date"
+                                                label="Vigencia Inicio"
+                                                value={formData.vigencia_inicio}
+                                                onChange={(v: string) => {
+                                                    handleChange('vigencia_inicio', v);
+                                                    handleJsonChange('fecha_inicio', null, v);
+                                                }}
+                                                required
+                                                icon={Icons.Calendar}
+                                                hasError={fieldErrors.has('vigencia_inicio')}
+                                            />
+                                        </div>
+                                        <div className="w-28">
+                                            <label className="block text-sm font-medium mb-1.5 text-zinc-700">Hora</label>
+                                            <select
+                                                value={formData.datos_json.hora_fecha_inicio || '00:00'}
+                                                onChange={(e) => handleJsonChange('hora_fecha_inicio', null, e.target.value)}
+                                                className="w-full rounded-xl border-zinc-200 bg-zinc-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 py-2.5 px-3"
+                                            >
+                                                <option value="00:00">00:00</option>
+                                                <option value="24:00">24:00</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <div className="flex-1">
+                                            <Input
+                                                type="date"
+                                                label="Vigencia Fin"
+                                                value={formData.vigencia_fin}
+                                                onChange={(v: string) => {
+                                                    handleChange('vigencia_fin', v);
+                                                    handleJsonChange('fecha_fin', null, v);
+                                                }}
+                                                required
+                                                icon={Icons.Calendar}
+                                                hasError={fieldErrors.has('vigencia_fin')}
+                                            />
+                                        </div>
+                                        <div className="w-28">
+                                            <label className="block text-sm font-medium mb-1.5 text-zinc-700">Hora</label>
+                                            <select
+                                                value={formData.datos_json.hora_fecha_fin || '24:00'}
+                                                onChange={(e) => handleJsonChange('hora_fecha_fin', null, e.target.value)}
+                                                className="w-full rounded-xl border-zinc-200 bg-zinc-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 py-2.5 px-3"
+                                            >
+                                                <option value="00:00">00:00</option>
+                                                <option value="24:00">24:00</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -952,7 +1005,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                 <SectionTitle title="Datos del Reasegurado" subtitle="Información de la reaseguradora." />
                                 <div className="grid gap-6">
                                     <Input
-                                        label="Nombre Reaseguradora"
+                                        label="Nombre"
                                         value={formData.datos_json.reasegurado.nombre}
                                         onChange={(v: string) => handleJsonChange('reasegurado', 'nombre', v)}
                                         icon={Icons.Building}
@@ -980,16 +1033,38 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         <Input
                                             label="Años"
                                             value={formData.datos_json.retroactividad?.anios || ''}
-                                            onChange={(v: string) => handleJsonChange('retroactividad', 'anios', v)}
-                                            placeholder="Ej. 2 años"
+                                            onChange={() => {}} // Read-only
+                                            placeholder="Calculado automáticamente"
                                             required
+                                            disabled={true}
                                             hasError={fieldErrors.has('retroactividad.anios')}
                                         />
                                         <Input
                                             type="date"
                                             label="Fecha Inicio"
                                             value={formData.datos_json.retroactividad?.fecha_inicio || ''}
-                                            onChange={(v: string) => handleJsonChange('retroactividad', 'fecha_inicio', v)}
+                                            onChange={(v: string) => {
+                                                handleJsonChange('retroactividad', 'fecha_inicio', v);
+                                                
+                                                // Calculate years automatically
+                                                if (v && formData.vigencia_inicio) {
+                                                    const start = new Date(v);
+                                                    const end = new Date(formData.vigencia_inicio);
+                                                    
+                                                    if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+                                                        let years = end.getFullYear() - start.getFullYear();
+                                                        const m = end.getMonth() - start.getMonth();
+                                                        if (m < 0 || (m === 0 && end.getDate() < start.getDate())) {
+                                                            years--;
+                                                        }
+                                                        
+                                                        // If years is 0 or less, check if it's same year
+                                                        if (years < 0) years = 0;
+                                                        
+                                                        handleJsonChange('retroactividad', 'anios', `${years} años`);
+                                                    }
+                                                }
+                                            }}
                                             icon={Icons.Calendar}
                                             required
                                             hasError={fieldErrors.has('retroactividad.fecha_inicio')}
@@ -997,10 +1072,11 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         <Input
                                             type="date"
                                             label="Fecha Fin"
-                                            value={formData.datos_json.retroactividad?.fecha_fin || ''}
-                                            onChange={(v: string) => handleJsonChange('retroactividad', 'fecha_fin', v)}
+                                            value={formData.vigencia_inicio} // Use vigencia_inicio as Fecha Fin
+                                            onChange={() => {}} // Read-only
                                             icon={Icons.Calendar}
                                             required
+                                            disabled={true}
                                             hasError={fieldErrors.has('retroactividad.fecha_fin')}
                                         />
                                     </div>
@@ -1062,6 +1138,14 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         disabled={true}
                                         hasError={fieldErrors.has('gastos_defensa.sublimite_evento_cop')}
                                     />
+                                    <Input
+                                        type="number"
+                                        label="Gasto de Defensa por Evento"
+                                        value={formData.datos_json.gastos_defensa?.gasto_defensa_por_evento}
+                                        onChange={(v: string) => handleJsonChange('gastos_defensa', 'gasto_defensa_por_evento', Number(v))}
+                                        icon={Icons.Money}
+                                        isCurrency
+                                    />
                                 </div>
                             </div>
 
@@ -1118,10 +1202,11 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                                 type="number"
                                                 label="Límite Único y Combinado (Ocurrencia)"
                                                 value={formData.datos_json.limite_indemnizacion_ocurrencia_valor || 0}
-                                                onChange={(v: string) => handleJsonChange('limite_indemnizacion_ocurrencia_valor', null, Number(v))}
+                                                onChange={() => {}}
                                                 icon={Icons.Money}
                                                 required
                                                 isCurrency
+                                                disabled={true}
                                                 hasError={fieldErrors.has('limite_indemnizacion_ocurrencia_valor')}
                                             />
                                             <Input
@@ -1149,9 +1234,8 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                 </div>
                                 {formData.tipo_slip === 'HIBRIDO' && (
                                     <div className={`mt-4 p-4 rounded-lg border ${
-                                        (formData.datos_json.limite_indemnizacion_ocurrencia_valor || 0) + 
                                         (formData.datos_json.limite_indemnizacion_claims_made_valor || 0) > 
-                                        formData.datos_json.limite_indemnizacion_valor 
+                                        (formData.datos_json.limite_indemnizacion_ocurrencia_valor || 0)
                                         ? 'bg-red-50 border-red-200 text-red-700' 
                                         : 'bg-blue-50 border-blue-200 text-blue-700'
                                     }`}>
@@ -1162,18 +1246,16 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                             <span className="font-medium">Control de Límites:</span>
                                         </div>
                                         <p className="mt-1 text-sm">
-                                            Suma actual: {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(
-                                                (formData.datos_json.limite_indemnizacion_ocurrencia_valor || 0) + 
-                                                (formData.datos_json.limite_indemnizacion_claims_made_valor || 0)
+                                            Sublímite Claims Made: {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(
+                                                formData.datos_json.limite_indemnizacion_claims_made_valor || 0
                                             )}
                                             {' / '}
-                                            Límite Total: {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(formData.datos_json.limite_indemnizacion_valor)}
+                                            Límite Ocurrencia: {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(formData.datos_json.limite_indemnizacion_ocurrencia_valor || 0)}
                                         </p>
-                                        {((formData.datos_json.limite_indemnizacion_ocurrencia_valor || 0) + 
-                                          (formData.datos_json.limite_indemnizacion_claims_made_valor || 0)) > 
-                                          formData.datos_json.limite_indemnizacion_valor && (
+                                        {(formData.datos_json.limite_indemnizacion_claims_made_valor || 0) > 
+                                          (formData.datos_json.limite_indemnizacion_ocurrencia_valor || 0) && (
                                             <p className="mt-1 text-sm font-bold">
-                                                ⚠️ La suma de los límites excede el límite total permitido.
+                                                ⚠️ El sublímite Claims Made excede el límite de Ocurrencia.
                                             </p>
                                         )}
                                     </div>
@@ -1182,68 +1264,60 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
 
                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
                                 <SectionTitle title="Descuentos de Reaseguro" />
-                                <div className="mb-6 flex items-center gap-3 bg-blue-50 p-4 rounded-xl border border-blue-100">
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            className="sr-only peer"
-                                            checked={formData.datos_json.descuentos?.comision_fronting || false}
-                                            onChange={(e) => {
-                                                const isChecked = e.target.checked;
-                                                handleJsonChange('descuentos', 'comision_fronting', isChecked);
-                                                if (isChecked) {
-                                                    handleJsonChange('descuentos', 'porcentaje_comision_cedente', 0);
-                                                    handleJsonChange('respaldo_reaseguro', 'porcentaje', 100);
-                                                }
-                                            }}
-                                        />
-                                        <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                                    </label>
-                                    <div>
-                                        <span className="text-sm font-medium text-zinc-900">Comisión Fronting</span>
-                                        <p className="text-xs text-zinc-500">Si se activa, la comisión cedente será 0%.</p>
-                                    </div>
-                                </div>
-
+                                
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <Input
                                         type="number"
                                         label="% Total"
                                         value={formData.datos_json.descuentos?.porcentaje_total}
-                                        onChange={(v: string) => handleJsonChange('descuentos', 'porcentaje_total', Number(v))}
+                                        onChange={() => {}}
                                         required
                                         min={0}
                                         max={100}
-                                        step={1}
+                                        step={0.01}
+                                        disabled={true}
                                         hasError={fieldErrors.has('descuentos.porcentaje_total')}
                                     />
-                                    <div className={formData.datos_json.descuentos?.comision_fronting ? 'opacity-50 pointer-events-none grayscale' : ''}>
-                                        <Input
-                                            type="number"
-                                            label="% Comisión Cedente"
-                                            value={formData.datos_json.descuentos?.porcentaje_comision_cedente}
-                                            onChange={(v: string) => {
-                                                const val = Number(v);
-                                                handleJsonChange('descuentos', 'porcentaje_comision_cedente', val);
-                                                handleJsonChange('respaldo_reaseguro', 'porcentaje', 100 - val);
-                                            }}
-                                            required
-                                            min={0}
-                                            max={100}
-                                            step={1}
-                                            disabled={formData.datos_json.descuentos?.comision_fronting}
-                                            hasError={fieldErrors.has('descuentos.porcentaje_comision_cedente')}
-                                        />
-                                    </div>
+                                    <Input
+                                        type="number"
+                                        label="% Comisión Cedente"
+                                        value={formData.datos_json.descuentos?.porcentaje_comision_cedente}
+                                        onChange={(v: string) => {
+                                            let val = Number(v);
+                                            const intermediario = formData.datos_json.descuentos?.porcentaje_intermediario || 0;
+                                            
+                                            if (val + intermediario > 100) {
+                                                val = 100 - intermediario;
+                                            }
+                                            
+                                            handleJsonChange('descuentos', 'porcentaje_comision_cedente', val);
+                                            handleJsonChange('descuentos', 'porcentaje_total', val + intermediario);
+                                        }}
+                                        required
+                                        min={0}
+                                        max={100}
+                                        step={0.01}
+                                        hasError={fieldErrors.has('descuentos.porcentaje_comision_cedente')}
+                                    />
                                     <Input
                                         type="number"
                                         label="% Intermediario"
                                         value={formData.datos_json.descuentos?.porcentaje_intermediario}
-                                        onChange={(v: string) => handleJsonChange('descuentos', 'porcentaje_intermediario', Number(v))}
+                                        onChange={(v: string) => {
+                                            let val = Number(v);
+                                            const cedente = formData.datos_json.descuentos?.porcentaje_comision_cedente || 0;
+                                            
+                                            if (val + cedente > 100) {
+                                                val = 100 - cedente;
+                                            }
+
+                                            handleJsonChange('descuentos', 'porcentaje_intermediario', val);
+                                            handleJsonChange('descuentos', 'porcentaje_total', cedente + val);
+                                        }}
                                         required
                                         min={0}
                                         max={100}
-                                        step={1}
+                                        step={0.01}
                                         hasError={fieldErrors.has('descuentos.porcentaje_intermediario')}
                                     />
                                 </div>
@@ -1257,7 +1331,11 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                             type="number"
                                             label="Porcentaje %"
                                             value={formData.datos_json.retencion_cedente?.porcentaje}
-                                            onChange={(v: string) => handleJsonChange('retencion_cedente', 'porcentaje', Number(v))}
+                                            onChange={(v: string) => {
+                                                const val = Number(v);
+                                                handleJsonChange('retencion_cedente', 'porcentaje', val);
+                                                handleJsonChange('respaldo_reaseguro', 'porcentaje', 100 - val);
+                                            }}
                                             required
                                             min={0}
                                             max={100}
@@ -1296,6 +1374,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         min={0}
                                         max={100}
                                         step={1}
+                                        defaultValue={20}
                                     />
                                     <Input
                                         type="number"
@@ -1303,6 +1382,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         value={formData.datos_json.reserva_primas?.dias || 0}
                                         onChange={(v: string) => handleJsonChange('reserva_primas', 'dias', parseInt(v))}
                                         min={0}
+                                        defaultValue={30}
                                     />
                                 </div>
                             </div>
@@ -1320,14 +1400,36 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
 
                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
                                 <SectionTitle title="Garantía de Pago" />
-                                <Input
-                                    type="number"
-                                    label="Garantía Pago Primas (Días)"
-                                    value={formData.datos_json.garantia_pago_primas_dias}
-                                    onChange={(v: string) => handleJsonChange('garantia_pago_primas_dias', null, parseInt(v))}
-                                    required
-                                    hasError={fieldErrors.has('garantia_pago_primas_dias')}
-                                />
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <Input
+                                        type="number"
+                                        label="Garantía Pago Primas (Días)"
+                                        value={formData.datos_json.garantia_pago_primas_dias}
+                                        onChange={(v: string) => handleJsonChange('garantia_pago_primas_dias', null, parseInt(v))}
+                                        required
+                                        hasError={fieldErrors.has('garantia_pago_primas_dias')}
+                                        defaultValue={60}
+                                    />
+                                    <Input
+                                        type="number"
+                                        label="Número de Cuotas"
+                                        value={formData.datos_json.numero_cuotas}
+                                        onChange={(v: string) => handleJsonChange('numero_cuotas', null, parseInt(v))}
+                                        min={1}
+                                        max={48}
+                                        step={1}
+                                        defaultValue={1}
+                                    />
+                                    <Input
+                                        type="number"
+                                        label="Valor Cuota"
+                                        value={formData.datos_json.valor_cuota}
+                                        onChange={() => {}} // Read-only
+                                        icon={Icons.Money}
+                                        isCurrency
+                                        disabled
+                                    />
+                                </div>
                             </div>
 
                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">

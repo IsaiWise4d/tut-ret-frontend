@@ -40,12 +40,10 @@ export interface SlipDataJson {
         ubicacion: string;
     };
     fecha_inicio: string;
+    hora_fecha_inicio?: string;
     fecha_fin: string;
+    hora_fecha_fin?: string;
     tipo_cobertura: 'CLAIMS_MADE' | 'OCURRENCIA' | 'HIBRIDO';
-    base_cobertura_hibrido?: {
-        anios: string;
-        fecha: string;
-    };
     retroactividad?: {
         anios: string;
         fecha_inicio?: string;
@@ -54,6 +52,7 @@ export interface SlipDataJson {
     gastos_defensa?: {
         porcentaje_limite: number;
         sublimite_evento_cop: number;
+        gasto_defensa_por_evento?: number;
     };
     limite_indemnizacion_valor: number;
     limite_indemnizacion_claims_made_valor?: number;
@@ -85,6 +84,8 @@ export interface SlipDataJson {
         dias: number;
     };
     garantia_pago_primas_dias: number;
+    numero_cuotas?: number;
+    valor_cuota?: number;
     clausula_intermediario?: string;
 }
 
