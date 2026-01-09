@@ -463,11 +463,17 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
     // Auto-calculate valor_cuota
     useEffect(() => {
         const prima = formData.datos_json.prima_anual_valor || 0;
+        const retencionCedente = formData.datos_json.retencion_cedente?.porcentaje || 0;
         const descuentoTotal = formData.datos_json.descuentos?.porcentaje_total || 0;
         const cuotas = formData.datos_json.numero_cuotas || 1;
 
         if (cuotas > 0) {
-            const netPremium = prima * (1 - (descuentoTotal / 100));
+            // Apply retention deductions first
+            const primaDespuesRetencion = prima * (1 - (retencionCedente / 100));
+            
+            // Apply discounts on the remaining amount
+            const netPremium = primaDespuesRetencion * (1 - (descuentoTotal / 100));
+            
             const valorCuota = Math.round(netPremium / cuotas);
             
             if (valorCuota !== formData.datos_json.valor_cuota) {
@@ -482,6 +488,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
         }
     }, [
         formData.datos_json.prima_anual_valor,
+        formData.datos_json.retencion_cedente?.porcentaje,
         formData.datos_json.descuentos?.porcentaje_total,
         formData.datos_json.numero_cuotas
     ]);
@@ -1046,22 +1053,39 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                             onChange={(v: string) => {
                                                 handleJsonChange('retroactividad', 'fecha_inicio', v);
                                                 
-                                                // Calculate years automatically
+                                                // Calculate years, months, days automatically
                                                 if (v && formData.vigencia_inicio) {
-                                                    const start = new Date(v);
-                                                    const end = new Date(formData.vigencia_inicio);
+                                                    const parseDate = (str: string) => {
+                                                        const [y, m, d] = str.split('-').map(Number);
+                                                        return new Date(y, m - 1, d);
+                                                    };
+
+                                                    const start = parseDate(v);
+                                                    const end = parseDate(formData.vigencia_inicio);
                                                     
                                                     if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+                                                        if (end < start) {
+                                                            handleJsonChange('retroactividad', 'anios', `0 años, 0 meses, 0 días`);
+                                                            return;
+                                                        }
+
                                                         let years = end.getFullYear() - start.getFullYear();
-                                                        const m = end.getMonth() - start.getMonth();
-                                                        if (m < 0 || (m === 0 && end.getDate() < start.getDate())) {
+                                                        let months = end.getMonth() - start.getMonth();
+                                                        let days = end.getDate() - start.getDate();
+
+                                                        if (days < 0) {
+                                                            months--;
+                                                            // Días en el mes anterior al mes final
+                                                            const prevMonth = new Date(end.getFullYear(), end.getMonth(), 0); 
+                                                            days += prevMonth.getDate();
+                                                        }
+
+                                                        if (months < 0) {
                                                             years--;
+                                                            months += 12;
                                                         }
                                                         
-                                                        // If years is 0 or less, check if it's same year
-                                                        if (years < 0) years = 0;
-                                                        
-                                                        handleJsonChange('retroactividad', 'anios', `${years} años`);
+                                                        handleJsonChange('retroactividad', 'anios', `${years} años, ${months} meses, ${days} días`);
                                                     }
                                                 }
                                             }}
