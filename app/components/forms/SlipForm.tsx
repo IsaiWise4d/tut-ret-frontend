@@ -1424,7 +1424,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
 
                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
                                 <SectionTitle title="Garantía de Pago" />
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                                     <Input
                                         type="number"
                                         label="Garantía Pago Primas (Días)"
@@ -1454,6 +1454,120 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         disabled
                                     />
                                 </div>
+                                <div className="bg-gradient-to-br from-zinc-50 to-white rounded-xl p-6 border border-zinc-200 shadow-sm mb-8">
+                                    <div className="flex items-center gap-2 mb-4 pb-2 border-b border-zinc-100">
+                                        <div className="p-1.5 bg-blue-50 rounded-lg text-blue-600">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                            </svg>
+                                        </div>
+                                        <h4 className="font-semibold text-zinc-900 text-sm">Desglose de Prima Neta</h4>
+                                    </div>
+                                    
+                                    {(() => {
+                                        const currency = (val: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
+                                        const p = formData.datos_json.prima_anual_valor || 0;
+                                        const rPct = formData.datos_json.retencion_cedente?.porcentaje || 0;
+                                        const dPct = formData.datos_json.descuentos?.porcentaje_total || 0;
+                                        
+                                        const rVal = p * (rPct / 100);
+                                        const afterRet = p - rVal;
+                                        const dVal = afterRet * (dPct / 100);
+                                        const total = afterRet - dVal;
+                                        
+                                        return (
+                                            <div className="space-y-2 text-sm max-w-2xl mx-auto">
+                                                <div className="flex justify-between items-center text-zinc-600">
+                                                    <span>Prima Anual Base</span>
+                                                    <span className="font-medium text-zinc-900">{currency(p)}</span>
+                                                </div>
+                                                <div className="pl-4 flex justify-between items-center text-amber-600 text-xs">
+                                                    <span>(-) Retención Cedente ({rPct}%)</span>
+                                                    <span>{currency(rVal)}</span>
+                                                </div>
+                                                <div className="pl-4 flex justify-between items-center text-amber-600 text-xs border-b border-dashed border-zinc-200 pb-2">
+                                                    <span>(-) Descuentos Reaseguro ({dPct}% del saldo)</span>
+                                                    <span>{currency(dVal)}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center bg-blue-50/50 p-3 rounded-lg border border-blue-100 mt-2">
+                                                    <span className="font-bold text-blue-900 text-sm">Total a Distribuir</span>
+                                                    <span className="font-bold text-blue-700 text-base">{currency(total)}</span>
+                                                </div>
+                                                {/* <div className="text-right text-[10px] text-zinc-400 mt-1">Este valor se divide entre el número de cuotas seleccionadas.</div> */}
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+
+                                {formData.datos_json.numero_cuotas > 0 && formData.vigencia_fin && (
+                                    <div className="overflow-hidden bg-white border border-zinc-200 rounded-xl shadow-sm ring-1 ring-black/5">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-zinc-50/80 backdrop-blur-sm border-b border-zinc-200">
+                                                <tr>
+                                                    <th className="px-6 py-4 text-center font-semibold text-zinc-700 text-xs uppercase tracking-wider w-24">No. Cuota</th>
+                                                    <th className="px-6 py-4 text-center font-semibold text-zinc-700 text-xs uppercase tracking-wider">Fecha Límite</th>
+                                                    <th className="px-6 py-4 text-center font-semibold text-zinc-700 text-xs uppercase tracking-wider">Días Acumulados</th>
+                                                    <th className="px-6 py-4 text-center font-semibold text-zinc-700 text-xs uppercase tracking-wider">Valor Cuota</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-zinc-100">
+                                                {Array.from({ length: formData.datos_json.numero_cuotas }).map((_, idx) => {
+                                                    const cuotaNum = idx + 1;
+                                                    const totalCuotas = formData.datos_json.numero_cuotas;
+                                                    
+                                                    // Calculation logic based on user requirements:
+                                                    // 1st Quota: End Date (vigencia_fin)
+                                                    // Last Quota: End Date + Warranty Days
+                                                    // Intermediate: Distributed evenly
+                                                    
+                                                    let fechaCuota = new Date(formData.vigencia_fin);
+                                                    const garantiaDias = formData.datos_json.garantia_pago_primas_dias || 0;
+                                                    
+                                                    // Calculate days offset for this specific quota
+                                                    let diasOffset = 0;
+                                                    if (totalCuotas === 1) {
+                                                        diasOffset = garantiaDias; // Case: Single quota = End of Warranty
+                                                    } else {
+                                                        // Distribute days: 
+                                                        // Q1 = 0 days
+                                                        // QLast = garantiaDias
+                                                        // Q_i = (i / (N-1)) * garantiaDias
+                                                        const p = idx / (totalCuotas - 1); // 0 to 1
+                                                        diasOffset = Math.round(p * garantiaDias);
+                                                    }
+                                                    
+                                                    // Add days to end date
+                                                    fechaCuota.setDate(fechaCuota.getDate() + diasOffset);
+                                                    const userTimezoneOffset = fechaCuota.getTimezoneOffset() * 60000;
+                                                    const adjustedDate = new Date(fechaCuota.getTime() + userTimezoneOffset);
+
+                                                    const fechaStr = adjustedDate.toLocaleDateString('es-CO', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+                                                    return (
+                                                        <tr key={idx} className="group hover:bg-blue-50/30 transition-colors">
+                                                            <td className="px-6 py-4 text-center font-medium text-zinc-900 group-hover:text-blue-700">{cuotaNum}</td>
+                                                            <td className="px-6 py-4 text-center text-zinc-600 tabular-nums">
+                                                                {fechaStr}
+                                                            </td>
+                                                            <td className="px-6 py-4 text-center text-zinc-500 text-xs">
+                                                                <span className="bg-zinc-100 px-2 py-1 rounded-md border border-zinc-200 group-hover:bg-white group-hover:border-blue-100 transition-colors">
+                                                                    {diasOffset} días
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-center font-mono text-zinc-700 tabular-nums font-medium group-hover:text-zinc-900">
+                                                                {new Intl.NumberFormat('es-CO', { 
+                                                                    style: 'currency', 
+                                                                    currency: 'COP', 
+                                                                    maximumFractionDigits: 0 
+                                                                }).format(formData.datos_json.valor_cuota || 0)}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
