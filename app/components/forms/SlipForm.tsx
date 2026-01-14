@@ -493,6 +493,58 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
         formData.datos_json.numero_cuotas
     ]);
 
+    // Auto-calculate cuotas schedule and save to JSON
+    useEffect(() => {
+        const cuotas = formData.datos_json.numero_cuotas || 0;
+        const garantiaDias = formData.datos_json.garantia_pago_primas_dias || 0;
+        const vigenciaFin = formData.vigencia_fin;
+        const valorCuota = formData.datos_json.valor_cuota || 0;
+
+        const addDays = (dateStr: string, daysToAdd: number) => {
+            if (!dateStr) return '';
+            const [y, m, d] = dateStr.split('-').map(Number);
+            const date = new Date(y, m - 1, d);
+            date.setDate(date.getDate() + daysToAdd);
+            
+            const newY = date.getFullYear();
+            const newM = String(date.getMonth() + 1).padStart(2, '0');
+            const newD = String(date.getDate()).padStart(2, '0');
+            return `${newY}-${newM}-${newD}`;
+        };
+
+        if (cuotas > 0 && vigenciaFin && garantiaDias > 0) {
+             const newCuotasSchedule = Array.from({ length: cuotas }).map((_, idx) => {
+                const cuotaNum = idx + 1;
+                const intervalo = garantiaDias / cuotas;
+                const diasOffset = Math.round(cuotaNum * intervalo);
+                const fechaStr = addDays(vigenciaFin, diasOffset);
+
+                return {
+                    numero: cuotaNum,
+                    fecha: fechaStr,
+                    valor: valorCuota,
+                    dias_acumulados: diasOffset
+                };
+            });
+
+            const currentSchedule = formData.datos_json.cuotas || [];
+            if (JSON.stringify(newCuotasSchedule) !== JSON.stringify(currentSchedule)) {
+                 setFormData(prev => ({
+                    ...prev,
+                    datos_json: {
+                        ...prev.datos_json,
+                        cuotas: newCuotasSchedule
+                    }
+                }));
+            }
+        }
+    }, [
+        formData.datos_json.numero_cuotas,
+        formData.datos_json.garantia_pago_primas_dias,
+        formData.vigencia_fin,
+        formData.datos_json.valor_cuota
+    ]);
+
     useEffect(() => {
         const handleBeforeUnload = (e: BeforeUnloadEvent) => {
             if (isDirty) {
@@ -1429,7 +1481,16 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         type="number"
                                         label="Garantía Pago Primas (Días)"
                                         value={formData.datos_json.garantia_pago_primas_dias}
-                                        onChange={(v: string) => handleJsonChange('garantia_pago_primas_dias', null, parseInt(v))}
+                                        onChange={(v: string) => {
+                                            const dias = parseInt(v);
+                                            handleJsonChange('garantia_pago_primas_dias', null, dias);
+                                            
+                                            // Auto-adjust quotas if they exceed days
+                                            const currentCuotas = formData.datos_json.numero_cuotas || 0;
+                                            if (currentCuotas > dias) {
+                                                handleJsonChange('numero_cuotas', null, dias);
+                                            }
+                                        }}
                                         required
                                         hasError={fieldErrors.has('garantia_pago_primas_dias')}
                                         defaultValue={60}
@@ -1438,7 +1499,17 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         type="number"
                                         label="Número de Cuotas"
                                         value={formData.datos_json.numero_cuotas}
-                                        onChange={(v: string) => handleJsonChange('numero_cuotas', null, parseInt(v))}
+                                        onChange={(v: string) => {
+                                            let cuotas = parseInt(v);
+                                            const dias = formData.datos_json.garantia_pago_primas_dias || 0;
+                                            
+                                            // Max quotas cannot exceed warranty days
+                                            if (cuotas > dias) {
+                                                cuotas = dias;
+                                            }
+                                            
+                                            handleJsonChange('numero_cuotas', null, cuotas);
+                                        }}
                                         min={1}
                                         max={48}
                                         step={1}
@@ -1505,53 +1576,22 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                             <thead className="bg-zinc-50/80 backdrop-blur-sm border-b border-zinc-200">
                                                 <tr>
                                                     <th className="px-6 py-4 text-center font-semibold text-zinc-700 text-xs uppercase tracking-wider w-24">No. Cuota</th>
-                                                    <th className="px-6 py-4 text-center font-semibold text-zinc-700 text-xs uppercase tracking-wider">Fecha Límite</th>
+                                                    <th className="px-6 py-4 text-center font-semibold text-zinc-700 text-xs uppercase tracking-wider">Fecha de Cuota</th>
                                                     <th className="px-6 py-4 text-center font-semibold text-zinc-700 text-xs uppercase tracking-wider">Días Acumulados</th>
                                                     <th className="px-6 py-4 text-center font-semibold text-zinc-700 text-xs uppercase tracking-wider">Valor Cuota</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-zinc-100">
-                                                {Array.from({ length: formData.datos_json.numero_cuotas }).map((_, idx) => {
-                                                    const cuotaNum = idx + 1;
-                                                    const totalCuotas = formData.datos_json.numero_cuotas;
-                                                    
-                                                    // Calculation logic based on user requirements:
-                                                    // 1st Quota: End Date (vigencia_fin)
-                                                    // Last Quota: End Date + Warranty Days
-                                                    // Intermediate: Distributed evenly
-                                                    
-                                                    let fechaCuota = new Date(formData.vigencia_fin);
-                                                    const garantiaDias = formData.datos_json.garantia_pago_primas_dias || 0;
-                                                    
-                                                    // Calculate days offset for this specific quota
-                                                    let diasOffset = 0;
-                                                    if (totalCuotas === 1) {
-                                                        diasOffset = garantiaDias; // Case: Single quota = End of Warranty
-                                                    } else {
-                                                        // Distribute days: 
-                                                        // Q1 = 0 days
-                                                        // QLast = garantiaDias
-                                                        // Q_i = (i / (N-1)) * garantiaDias
-                                                        const p = idx / (totalCuotas - 1); // 0 to 1
-                                                        diasOffset = Math.round(p * garantiaDias);
-                                                    }
-                                                    
-                                                    // Add days to end date
-                                                    fechaCuota.setDate(fechaCuota.getDate() + diasOffset);
-                                                    const userTimezoneOffset = fechaCuota.getTimezoneOffset() * 60000;
-                                                    const adjustedDate = new Date(fechaCuota.getTime() + userTimezoneOffset);
-
-                                                    const fechaStr = adjustedDate.toLocaleDateString('es-CO', { year: 'numeric', month: '2-digit', day: '2-digit' });
-
+                                                                                        <tbody className="divide-y divide-zinc-100">
+                                                {(formData.datos_json.cuotas || []).map((cuota, idx) => {
                                                     return (
                                                         <tr key={idx} className="group hover:bg-blue-50/30 transition-colors">
-                                                            <td className="px-6 py-4 text-center font-medium text-zinc-900 group-hover:text-blue-700">{cuotaNum}</td>
+                                                            <td className="px-6 py-4 text-center font-medium text-zinc-900 group-hover:text-blue-700">{cuota.numero}</td>
                                                             <td className="px-6 py-4 text-center text-zinc-600 tabular-nums">
-                                                                {fechaStr}
+                                                                {cuota.fecha}
                                                             </td>
                                                             <td className="px-6 py-4 text-center text-zinc-500 text-xs">
                                                                 <span className="bg-zinc-100 px-2 py-1 rounded-md border border-zinc-200 group-hover:bg-white group-hover:border-blue-100 transition-colors">
-                                                                    {diasOffset} días
+                                                                    {cuota.dias_acumulados} días
                                                                 </span>
                                                             </td>
                                                             <td className="px-6 py-4 text-center font-mono text-zinc-700 tabular-nums font-medium group-hover:text-zinc-900">
@@ -1559,7 +1599,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                                                     style: 'currency', 
                                                                     currency: 'COP', 
                                                                     maximumFractionDigits: 0 
-                                                                }).format(formData.datos_json.valor_cuota || 0)}
+                                                                }).format(cuota.valor || 0)}
                                                             </td>
                                                         </tr>
                                                     );

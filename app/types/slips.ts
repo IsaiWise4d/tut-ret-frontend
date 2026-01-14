@@ -90,6 +90,12 @@ export interface SlipDataJson {
     garantia_pago_primas_dias: number;
     numero_cuotas?: number;
     valor_cuota?: number;
+    cuotas?: { 
+        numero: number; 
+        fecha: string; 
+        valor: number;
+        dias_acumulados: number;
+    }[];
     clausula_intermediario?: string;
 }
 
