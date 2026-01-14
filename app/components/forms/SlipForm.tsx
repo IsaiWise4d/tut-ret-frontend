@@ -1570,7 +1570,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                     })()}
                                 </div>
 
-                                {formData.datos_json.numero_cuotas > 0 && formData.vigencia_fin && (
+                                {(formData.datos_json.numero_cuotas || 0) > 0 && formData.vigencia_fin && (
                                     <div className="overflow-hidden bg-white border border-zinc-200 rounded-xl shadow-sm ring-1 ring-black/5">
                                         <table className="w-full text-sm">
                                             <thead className="bg-zinc-50/80 backdrop-blur-sm border-b border-zinc-200">
