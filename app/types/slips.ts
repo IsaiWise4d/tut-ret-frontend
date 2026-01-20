@@ -89,6 +89,7 @@ export interface SlipDataJson {
     };
     garantia_pago_primas_dias: number;
     numero_cuotas?: number;
+    frecuencia_pago?: number;
     valor_cuota?: number;
     cuotas?: { 
         numero: number; 

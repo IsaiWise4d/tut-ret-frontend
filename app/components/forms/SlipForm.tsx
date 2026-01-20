@@ -41,6 +41,7 @@ const initialSlipData: CreateSlipData = {
         reserva_primas: { porcentaje: 20, dias: 30 },
         garantia_pago_primas_dias: 60,
         numero_cuotas: 1,
+        frecuencia_pago: 30,
         valor_cuota: 0
     }
 };
@@ -496,9 +497,12 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
     // Auto-calculate cuotas schedule and save to JSON
     useEffect(() => {
         const cuotas = formData.datos_json.numero_cuotas || 0;
-        const garantiaDias = formData.datos_json.garantia_pago_primas_dias || 0;
         const vigenciaFin = formData.vigencia_fin;
         const valorCuota = formData.datos_json.valor_cuota || 0;
+        
+        // Mode specific vars
+        const garantiaDias = formData.datos_json.garantia_pago_primas_dias || 0;
+        const frecuencia = formData.datos_json.frecuencia_pago || 30;
 
         const addDays = (dateStr: string, daysToAdd: number) => {
             if (!dateStr) return '';
@@ -512,20 +516,69 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
             return `${newY}-${newM}-${newD}`;
         };
 
-        if (cuotas > 0 && vigenciaFin && garantiaDias > 0) {
-             const newCuotasSchedule = Array.from({ length: cuotas }).map((_, idx) => {
-                const cuotaNum = idx + 1;
-                const intervalo = garantiaDias / cuotas;
-                const diasOffset = Math.round(cuotaNum * intervalo);
-                const fechaStr = addDays(vigenciaFin, diasOffset);
+         const addMonths = (dateStr: string, monthsToAdd: number) => {
+             if (!dateStr) return '';
+             const [y, m, d] = dateStr.split('-').map(Number);
+             const date = new Date(y, m - 1, d); // Month is 0-indexed
 
-                return {
-                    numero: cuotaNum,
-                    fecha: fechaStr,
-                    valor: valorCuota,
-                    dias_acumulados: diasOffset
-                };
-            });
+             // Target Month Logic
+             const targetMonth = date.getMonth() + monthsToAdd;
+             const targetYear = date.getFullYear() + Math.floor(targetMonth / 12);
+             const newMonthIndex = targetMonth % 12;
+
+             // Days in target month
+             const daysInTargetMonth = new Date(targetYear, newMonthIndex + 1, 0).getDate();
+             
+             // Clamp day to end of month if necessary
+             const newDay = Math.min(d, daysInTargetMonth);
+
+             const mm = String(newMonthIndex + 1).padStart(2, '0');
+             const dd = String(newDay).padStart(2, '0');
+             return `${targetYear}-${mm}-${dd}`;
+        };
+
+        if (cuotas > 0 && vigenciaFin) {
+             let newCuotasSchedule: any[] = [];
+
+             if (cuotas === 1) {
+                 // Single payment logic: Base + Warranty Days
+                 if (garantiaDias > 0) {
+                     newCuotasSchedule.push({
+                         numero: 1,
+                         fecha: addDays(vigenciaFin, garantiaDias),
+                         valor: valorCuota,
+                         dias_acumulados: garantiaDias
+                     });
+                 }
+             } else {
+                 // Installment logic
+                 newCuotasSchedule = Array.from({ length: cuotas }).map((_, idx) => {
+                    const cuotaNum = idx + 1;
+                    let fechaStr = '';
+                    let diasOffset = 0;
+                    
+                    // Use Month arithmetic for 30, 60, 90, 180 days (1, 2, 3, 6 months)
+                    // Use Day arithmetic for 15 days
+                    if (frecuencia >= 30 && frecuencia % 30 === 0) {
+                        const monthsToAdd = (frecuencia / 30) * cuotaNum;
+                        fechaStr = addMonths(vigenciaFin, monthsToAdd);
+                        
+                        // Calculate real day difference for display
+                        const diffTime = new Date(fechaStr).getTime() - new Date(vigenciaFin).getTime();
+                        diasOffset = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                    } else {
+                         diasOffset = cuotaNum * frecuencia;
+                         fechaStr = addDays(vigenciaFin, diasOffset);
+                    }
+
+                    return {
+                        numero: cuotaNum,
+                        fecha: fechaStr,
+                        valor: valorCuota,
+                        dias_acumulados: diasOffset
+                    };
+                });
+             }
 
             const currentSchedule = formData.datos_json.cuotas || [];
             if (JSON.stringify(newCuotasSchedule) !== JSON.stringify(currentSchedule)) {
@@ -541,8 +594,71 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
     }, [
         formData.datos_json.numero_cuotas,
         formData.datos_json.garantia_pago_primas_dias,
+        formData.datos_json.frecuencia_pago,
         formData.vigencia_fin,
         formData.datos_json.valor_cuota
+    ]);
+
+    // Auto-calculate Retroactividad Anios
+    useEffect(() => {
+        if (formData.tipo_slip === 'OCURRENCIA') return;
+
+        const startStr = formData.datos_json.retroactividad?.fecha_inicio;
+        // Use recursive logic: explicit end date > vigencia_inicio > undefined
+        const endStr = formData.datos_json.retroactividad?.fecha_fin || formData.vigencia_inicio;
+
+        if (startStr && endStr) {
+             const parseDate = (str: string) => {
+                const [y, m, d] = str.split('-').map(Number);
+                return new Date(y, m - 1, d);
+            };
+
+            const start = parseDate(startStr);
+            const end = parseDate(endStr);
+            
+            if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+                let result = '';
+                if (end < start) {
+                     result = `Error: Fecha Fin menor a Inicio`;
+                     // We don't overwrite with error message to avoid breaking UI, maybe just 0
+                     result = '0 años, 0 meses, 0 días';
+                } else {
+                    let years = end.getFullYear() - start.getFullYear();
+                    let months = end.getMonth() - start.getMonth();
+                    let days = end.getDate() - start.getDate();
+
+                    if (days < 0) {
+                        months--;
+                        const prevMonth = new Date(end.getFullYear(), end.getMonth(), 0); 
+                        days += prevMonth.getDate();
+                    }
+
+                    if (months < 0) {
+                        years--;
+                        months += 12;
+                    }
+                    result = `${years} años, ${months} meses, ${days} días`;
+                }
+
+                 if (formData.datos_json.retroactividad?.anios !== result) {
+                    setFormData(prev => ({
+                        ...prev,
+                        datos_json: {
+                            ...prev.datos_json,
+                            retroactividad: {
+                                ...prev.datos_json.retroactividad!,
+                                anios: result
+                            }
+                        }
+                    }));
+                 }
+            }
+        }
+    }, [
+        formData.datos_json.retroactividad?.fecha_inicio,
+        formData.datos_json.retroactividad?.fecha_fin,
+        formData.vigencia_inicio,
+        formData.tipo_slip
     ]);
 
     useEffect(() => {
@@ -1102,45 +1218,7 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                             type="date"
                                             label="Fecha Inicio"
                                             value={formData.datos_json.retroactividad?.fecha_inicio || ''}
-                                            onChange={(v: string) => {
-                                                handleJsonChange('retroactividad', 'fecha_inicio', v);
-                                                
-                                                // Calculate years, months, days automatically
-                                                if (v && formData.vigencia_inicio) {
-                                                    const parseDate = (str: string) => {
-                                                        const [y, m, d] = str.split('-').map(Number);
-                                                        return new Date(y, m - 1, d);
-                                                    };
-
-                                                    const start = parseDate(v);
-                                                    const end = parseDate(formData.vigencia_inicio);
-                                                    
-                                                    if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
-                                                        if (end < start) {
-                                                            handleJsonChange('retroactividad', 'anios', `0 años, 0 meses, 0 días`);
-                                                            return;
-                                                        }
-
-                                                        let years = end.getFullYear() - start.getFullYear();
-                                                        let months = end.getMonth() - start.getMonth();
-                                                        let days = end.getDate() - start.getDate();
-
-                                                        if (days < 0) {
-                                                            months--;
-                                                            // Días en el mes anterior al mes final
-                                                            const prevMonth = new Date(end.getFullYear(), end.getMonth(), 0); 
-                                                            days += prevMonth.getDate();
-                                                        }
-
-                                                        if (months < 0) {
-                                                            years--;
-                                                            months += 12;
-                                                        }
-                                                        
-                                                        handleJsonChange('retroactividad', 'anios', `${years} años, ${months} meses, ${days} días`);
-                                                    }
-                                                }
-                                            }}
+                                            onChange={(v: string) => handleJsonChange('retroactividad', 'fecha_inicio', v)}
                                             icon={Icons.Calendar}
                                             required
                                             hasError={fieldErrors.has('retroactividad.fecha_inicio')}
@@ -1148,11 +1226,11 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                         <Input
                                             type="date"
                                             label="Fecha Fin"
-                                            value={formData.vigencia_inicio} // Use vigencia_inicio as Fecha Fin
-                                            onChange={() => {}} // Read-only
+                                            value={formData.datos_json.retroactividad?.fecha_fin || formData.vigencia_inicio}
+                                            onChange={(v: string) => handleJsonChange('retroactividad', 'fecha_fin', v)}
                                             icon={Icons.Calendar}
                                             required
-                                            disabled={true}
+                                            disabled={false}
                                             hasError={fieldErrors.has('retroactividad.fecha_fin')}
                                         />
                                     </div>
@@ -1479,42 +1557,50 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                                     <Input
                                         type="number"
-                                        label="Garantía Pago Primas (Días)"
-                                        value={formData.datos_json.garantia_pago_primas_dias}
-                                        onChange={(v: string) => {
-                                            const dias = parseInt(v);
-                                            handleJsonChange('garantia_pago_primas_dias', null, dias);
-                                            
-                                            // Auto-adjust quotas if they exceed days
-                                            const currentCuotas = formData.datos_json.numero_cuotas || 0;
-                                            if (currentCuotas > dias) {
-                                                handleJsonChange('numero_cuotas', null, dias);
-                                            }
-                                        }}
-                                        required
-                                        hasError={fieldErrors.has('garantia_pago_primas_dias')}
-                                        defaultValue={60}
-                                    />
-                                    <Input
-                                        type="number"
                                         label="Número de Cuotas"
                                         value={formData.datos_json.numero_cuotas}
                                         onChange={(v: string) => {
-                                            let cuotas = parseInt(v);
-                                            const dias = formData.datos_json.garantia_pago_primas_dias || 0;
-                                            
-                                            // Max quotas cannot exceed warranty days
-                                            if (cuotas > dias) {
-                                                cuotas = dias;
-                                            }
-                                            
-                                            handleJsonChange('numero_cuotas', null, cuotas);
+                                            const val = parseInt(v);
+                                            handleJsonChange('numero_cuotas', null, val);
                                         }}
                                         min={1}
                                         max={48}
                                         step={1}
                                         defaultValue={1}
                                     />
+                                    
+                                    {(formData.datos_json.numero_cuotas === 1) ? (
+                                        <Input
+                                            type="number"
+                                            label="Garantía Pago Primas (Días)"
+                                            value={formData.datos_json.garantia_pago_primas_dias}
+                                            onChange={(v: string) => {
+                                                const dias = parseInt(v);
+                                                handleJsonChange('garantia_pago_primas_dias', null, dias);
+                                            }}
+                                            required
+                                            hasError={fieldErrors.has('garantia_pago_primas_dias')}
+                                            defaultValue={60}
+                                        />
+                                    ) : (
+                                        <div className="group">
+                                            <div className="flex justify-between items-center mb-1.5">
+                                                <label className="block text-sm font-medium text-zinc-700">Frecuencia de Pago</label>
+                                            </div>
+                                            <select
+                                                value={formData.datos_json.frecuencia_pago || 30}
+                                                onChange={(e) => handleJsonChange('frecuencia_pago', null, parseInt(e.target.value))}
+                                                className="w-full rounded-xl border-zinc-200 bg-zinc-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 py-2.5 px-4"
+                                            >
+                                                <option value={15}>Quincenal (15 días)</option>
+                                                <option value={30}>Mensual (30 días)</option>
+                                                <option value={60}>Bimestral (60 días)</option>
+                                                <option value={90}>Trimestral (90 días)</option>
+                                                <option value={180}>Semestral (180 días)</option>
+                                            </select>
+                                        </div>
+                                    )}
+
                                     <Input
                                         type="number"
                                         label="Valor Cuota"
@@ -1583,11 +1669,46 @@ function SlipForm({ initialData, onSuccess, onCancel }: SlipFormProps) {
                                             </thead>
                                                                                         <tbody className="divide-y divide-zinc-100">
                                                 {(formData.datos_json.cuotas || []).map((cuota, idx) => {
+                                                    const cuotas = formData.datos_json.cuotas || [];
+                                                    const prevDate = idx === 0 ? formData.vigencia_fin : cuotas[idx - 1].fecha;
+                                                    const nextDate = idx === cuotas.length - 1 ? undefined : cuotas[idx + 1].fecha;
+
                                                     return (
                                                         <tr key={idx} className="group hover:bg-blue-50/30 transition-colors">
                                                             <td className="px-6 py-4 text-center font-medium text-zinc-900 group-hover:text-blue-700">{cuota.numero}</td>
-                                                            <td className="px-6 py-4 text-center text-zinc-600 tabular-nums">
-                                                                {cuota.fecha}
+                                                            <td className="px-6 py-4 text-center text-zinc-600">
+                                                                <input 
+                                                                    type="date"
+                                                                    value={cuota.fecha}
+                                                                    min={prevDate}
+                                                                    max={nextDate}
+                                                                    onChange={(e) => {
+                                                                         const newDate = e.target.value;
+                                                                         if (!newDate) return;
+                                                                         
+                                                                         // Validate bounds manually just in case
+                                                                         if (prevDate && newDate < prevDate) return;
+                                                                         if (nextDate && newDate > nextDate) return;
+
+                                                                         const updatedCuotas = [...cuotas];
+                                                                         
+                                                                         const start = new Date(formData.vigencia_fin);
+                                                                         const current = new Date(newDate);
+                                                                         const diff = Math.ceil((current.getTime() - start.getTime()) / (1000 * 3600 * 24));
+
+                                                                         updatedCuotas[idx] = {
+                                                                             ...updatedCuotas[idx],
+                                                                             fecha: newDate,
+                                                                             dias_acumulados: diff
+                                                                         };
+
+                                                                         setFormData(prev => ({
+                                                                             ...prev,
+                                                                             datos_json: { ...prev.datos_json, cuotas: updatedCuotas }
+                                                                         }));
+                                                                    }}
+                                                                    className="border-0 bg-transparent text-center focus:ring-1 focus:ring-blue-200 rounded p-1 w-full cursor-pointer hover:bg-white"
+                                                                />
                                                             </td>
                                                             <td className="px-6 py-4 text-center text-zinc-500 text-xs">
                                                                 <span className="bg-zinc-100 px-2 py-1 rounded-md border border-zinc-200 group-hover:bg-white group-hover:border-blue-100 transition-colors">
